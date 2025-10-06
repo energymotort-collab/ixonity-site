@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ixonity — Digital Evolution</title>
+  <meta name="description" content="Ixonity — indie studio by FOP Zaitsev Oleksii. We build iOS apps, QR & analytics, Firebase backends, and stylish UI. Future: games." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/logo-mark.jpg">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Preloader with animated glow -->
+  <div id="preloader" class="preloader">
+    <img src="assets/logo-mark.jpg" alt="Ixonity logo" class="preloader__logo" />
+    <div class="preloader__ring"></div>
+  </div>
+
+  <header class="site-header glass">
+    <a href="#" class="brand">
+      <img src="assets/logo-mark.jpg" alt="Ixonity" class="brand__logo"/>
+      <span class="brand__name">Ixonity</span>
+    </a>
+    <nav class="nav">
+      <a href="#about" data-i18n="nav_about">About</a>
+      <a href="#services" data-i18n="nav_services">Services</a>
+      <a href="#portfolio" data-i18n="nav_portfolio">Portfolio</a>
+      <a href="#contact" class="cta" data-i18n="nav_contact">Contact</a>
+    </nav>
+    <div class="lang-switch">
+      <button id="btn-uk" class="lang" aria-label="Українська">UK</button>
+      <button id="btn-en" class="lang active" aria-label="English">EN</button>
+    </div>
+  </header>
+
+  <!-- Subtle animated background -->
+  <div class="bg">
+    <div class="orb orb--1"></div>
+    <div class="orb orb--2"></div>
+    <div class="grid"></div>
+  </div>
+
+  <main>
+    <section class="hero">
+      <div class="hero__content">
+        <div class="x-anim">
+        <img src="assets/hero-main.jpg" alt="Ixonity hero" class="hero__logo neon-fade" />
+        <span class="x x--a"></span>
+        <span class="x x--b"></span>
+        <span class="halo"></span>
+       </div>
+        <h1 class="hero__title" data-i18n="hero_title">Digital&nbsp;Evolution</h1>
+        <p class="hero__subtitle" data-i18n="hero_sub">
+          Indie studio by FOP Zaitsev Oleksii. We craft performant iOS apps with beautiful design.
+        </p>
+        <div class="hero__actions">
+          <a href="#contact" class="btn btn--primary" data-i18n="hero_cta">Get in touch</a>
+          <a href="#services" class="btn btn--ghost" data-i18n="hero_secondary">See what we do</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <h2 data-i18n="about_title">Who we are</h2>
+      <div class="cols">
+        <div class="col">
+          <p data-i18n="about_p1">
+            Ixonity is a minimal, tech-forward indie brand by <strong>FOP Zaitsev Oleksii</strong> (Ukraine, Odesa). We love clean UI, “liquid glass” visuals, and practical engineering.
+          </p>
+          <ul class="bullets">
+            <li data-i18n="about_b1"><strong>Focus:</strong> iOS apps (SwiftUI) + Firebase backends.</li>
+            <li data-i18n="about_b2">QR tools, analytics, short links, dynamic designs.</li>
+            <li data-i18n="about_b3">Future: mobile games & creative tools.</li>
+          </ul>
+        </div>
+        <div class="col card glass legal">
+          <h3 data-i18n="legal_title">Legal & Contacts</h3>
+          <p><span data-i18n="legal_fop">FOP:</span> Зайцев Олексій Юрійович / Zaitsev Oleksii</p>
+          <p><span data-i18n="legal_addr_label">Address:</span> Україна, Одеська область, м. Одеса, вул. Відрадна, буд. 7, кв. 7</p>
+          <p><span>Email:</span> <a href="mailto:ixonity@gmail.com" id="emailLink">ixonity@gmail.com</a></p>
+          <p><span data-i18n="legal_phone">Phone / WhatsApp:</span> <a href="tel:+380771817071">+380&nbsp;77&nbsp;181&nbsp;70&nbsp;71</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="services" class="section">
+      <h2 data-i18n="srv_title">What we do</h2>
+      <div class="cards">
+        <article class="card glass">
+          <h3 data-i18n="srv1_title">iOS Apps</h3>
+          <p data-i18n="srv1_desc">SwiftUI apps with smooth animations, offline-first, and clean architecture.</p>
+        </article>
+        <article class="card glass">
+          <h3 data-i18n="srv2_title">Backends</h3>
+          <p data-i18n="srv2_desc">Firebase / Cloud Functions, auth, payments, analytics dashboards.</p>
+        </article>
+        <article class="card glass">
+          <h3 data-i18n="srv3_title">QR & Analytics</h3>
+          <p data-i18n="srv3_desc">Static & dynamic QR codes, branded frames, click stats, API.</p>
+        </article>
+        <article class="card glass">
+          <h3 data-i18n="srv4_title">Design</h3>
+          <p data-i18n="srv4_desc">“Liquid Glass” UI, logos, landing pages, marketing visuals.</p>
+        </article>
+        <article class="card glass">
+          <h3 data-i18n="srv5_title">Games (Soon)</h3>
+          <p data-i18n="srv5_desc">Prototyping stylish, lightweight mobile games with great feel.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="portfolio" class="section">
+  <h2 data-i18n="port_title">Featured</h2>
+  <div class="port-phones">
+    <article class="card glass phone">
+      <img src="assets/archdep-feature.png" class="phone-img" alt="Archdep.Furniture app (iPhone 15 Pro Max)">
+      <div class="phone-caption">
+        <h3>Archdep.Furniture</h3>
+        <p data-i18n="port_archdep">E‑commerce furniture app for iOS: SwiftUI UI, custom cart, Monobank acquiring, analytics.</p>
+        <p><a class="btn btn--ghost small" href="https://apps.apple.com/app/id6748553482" target="_blank" rel="noopener">App Store → Archdep</a></p>
+      </div>
+    </article>
+    <article class="card glass phone">
+      <img src="assets/qr-feature.png" class="phone-img" alt="QR Studio app (iPhone 15 Pro Max)">
+      <div class="phone-caption">
+        <h3>QR Studio</h3>
+        <p data-i18n="port_qr">Advanced QR generator with custom eyes, frames, analytics and exports.</p>
+        <p><span class="small" style="color:var(--muted)">App Store link — soon</span></p>
+      </div>
+    </article>
+  </div>
+</section>
+
+    <section id="contact" class="section">
+  <h2 data-i18n="contact_title">Support & Contacts</h2>
+  <div class="cols">
+    <form id="contactForm" class="card glass form">
+      <label>
+        <span data-i18n="form_name">Your Name</span>
+        <input type="text" name="name" required placeholder="John Doe" />
+      </label>
+      <label>
+        <span data-i18n="form_email">Your Email</span>
+        <input type="email" name="email" required placeholder="you@example.com" />
+      </label>
+      <label>
+        <span data-i18n="form_msg">Message</span>
+        <textarea name="message" rows="5" required placeholder="How can we help?"></textarea>
+      </label>
+      <button class="btn btn--primary" type="submit" data-i18n="form_send">Send</button>
+      <p class="form__hint" data-i18n="form_hint">No backend needed: opens your email app with a pre‑filled message.</p>
+    </form>
+
+    <div class="col">
+      <div class="card glass">
+        <h3 data-i18n="social_title">Other channels</h3>
+        <ul class="links">
+          <li><a id="mailBtn" href="mailto:ixonity@gmail.com">Email: ixonity@gmail.com</a></li>
+          <li><a id="waBtn" href="https://wa.me/380771817071" target="_blank" rel="noopener">WhatsApp: +380771817071</a></li>
+          <li><a id="igBtn" href="https://instagram.com/ixonity_studio" target="_blank" rel="noopener">Instagram: @ixonity_studio</a></li>
+        </ul>
+        <button id="copyEmail" class="btn btn--ghost small" data-i18n="copy_btn">Copy email</button>
+      </div>
+      <div class="card glass qr-grid">
+        <div class="qr-item">
+          <img src="assets/qr-instagram.jpg" alt="Instagram QR @ixonity_studio">
+          <p><a href="https://instagram.com/ixonity_studio" target="_blank" rel="noopener">instagram.com/ixonity_studio</a></p>
+        </div>
+        <div class="qr-item">
+          <img src="assets/qr-whatsapp.png" alt="WhatsApp QR">
+          <p><a href="https://wa.me/380771817071" target="_blank" rel="noopener">wa.me/380771817071</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+  </main>
+
+  <footer class="site-footer glass">
+    <p>&copy; <span id="year"></span> Ixonity · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="impressum.html">Impressum</a></p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
