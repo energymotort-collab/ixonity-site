@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ixonity — Digital Evolution</title>
+  <meta name="description"
+    content="Ixonity — indie studio by FOP Zaitsev Oleksii. We build iOS apps, QR & analytics, Firebase backends, and stylish UI. Future: games." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/logo-mark.jpg">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- Preloader with animated glow -->
+  <div id="preloader" class="preloader">
+    <img src="assets/logo-mark.jpg" alt="Ixonity logo" class="preloader__logo" />
+    <div class="preloader__ring"></div>
+  </div>
+
+  <header class="site-header glass">
+    <a href="#" class="brand">
+      <img src="assets/logo-mark.jpg" alt="Ixonity" class="brand__logo" />
+      <span class="brand__name">Ixonity</span>
+    </a>
+    <nav class="nav">
+      <a href="#about" data-i18n="nav_about">About</a>
+      <a href="#services" data-i18n="nav_services">Services</a>
+      <a href="#portfolio" data-i18n="nav_portfolio">Portfolio</a>
+      <a href="#contact" class="cta" data-i18n="nav_contact">Contact</a>
+    </nav>
+    <div class="lang-switch">
+      <button id="btn-uk" class="lang" aria-label="Українська">UK</button>
+      <button id="btn-en" class="lang active" aria-label="English">EN</button>
+    </div>
+  </header>
+
+  <!-- Subtle animated background -->
+  <div class="bg">
+    <div class="orb orb--1"></div>
+    <div class="orb orb--2"></div>
+    <div class="grid"></div>
+  </div>
+
+  <main>
+    <section class="hero">
+      <div class="x-anim reveal" style="padding: 40px 0;">
+        <div class="halo"></div>
+        <div class="x x--a"></div>
+        <div class="x x--b"></div>
+        <div class="hero__text-logo z-20">Ixonity</div>
+      </div>
+
+      <div class="hero__content under">
+        <h1 class="hero__title reveal" data-i18n="hero_title">Digital Evolution</h1>
+        <p class="hero__subtitle reveal reveal-delay-1" data-i18n="hero_sub">
+          Indie studio Ixonity. We craft performant iOS apps with beautiful design.
+        </p>
+        <div class="hero__actions reveal reveal-delay-2">
+          <span class="magnetic"><a href="#contact" class="btn btn--primary" data-i18n="hero_cta">Get in
+              touch</a></span>
+          <a href="#services" class="btn btn--ghost" data-i18n="hero_secondary">See what we do</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="rnd" class="section">
+      <div class="card glass rnd-card reveal reveal-delay-1">
+        <div class="rnd-visual"
+          style="border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 40px rgba(124, 243, 255, 0.15); border: 1px solid rgba(124, 243, 255, 0.15);">
+          <video class="rnd-video" autoplay loop muted playsinline
+            style="width: 100%; height: 100%; object-fit: cover; border-radius: 20px;">
+            <source src="media/sht.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <div class="rnd-content">
+          <div class="rnd-header">
+            <h2 class="rnd-title" data-i18n="rnd_title">Project: StormDive</h2>
+            <div class="rnd-status"><span class="pulse-dot"></span>In Development</div>
+          </div>
+          <h3 class="rnd-subtitle" data-i18n="rnd_subtitle">Next-Gen WebGPU Planet Engine</h3>
+          <p class="rnd-desc" data-i18n="rnd_desc">We are building a massive 3D planetary engine from scratch. Features
+            include true volumetric raymarched clouds with Rayleigh/Mie scattering, real-time climate simulation (1M+
+            particles advection for wind), and interactive atmospheric flight with seamless LOD scaling.</p>
+          <div class="rnd-tags">
+            <span class="tag" data-i18n="rnd_tag_1">WebGPU</span>
+            <span class="tag" data-i18n="rnd_tag_2">Raymarching</span>
+            <span class="tag" data-i18n="rnd_tag_5">Volumetric Clouds</span>
+            <span class="tag" data-i18n="rnd_tag_3">1M+ Particles</span>
+            <span class="tag" data-i18n="rnd_tag_4">Scattering</span>
+            <span class="tag" data-i18n="rnd_tag_6">TypeScript</span>
+          </div>
+          <span class="magnetic" style="margin-top: 24px; display: inline-block;">
+            <a href="https://instagram.com/ixonity_studio" target="_blank" rel="noopener"
+              class="btn btn--ghost rnd-btn">
+              <span data-i18n="rnd_btn">Follow Development</span>
+              <span style="opacity:0.5; font-size: 0.9em; margin-left:4px;">→</span>
+            </a>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <h2 class="reveal" data-i18n="about_title">Who we are</h2>
+      <div class="cols">
+        <div class="col reveal reveal-delay-1">
+          <p data-i18n="about_p1">
+            Ixonity is a minimal, tech-forward indie brand from Ukraine, Odesa. We love clean UI, “liquid glass”
+            visuals, and practical engineering.
+          </p>
+          <ul class="bullets">
+            <li data-i18n="about_b1"><strong>Focus:</strong> iOS apps (SwiftUI) + Firebase backends.</li>
+            <li data-i18n="about_b2">QR tools, analytics, short links, dynamic designs.</li>
+            <li data-i18n="about_b3">Future: mobile games & creative tools.</li>
+          </ul>
+        </div>
+        <div class="col card glass legal reveal reveal-delay-2">
+          <h3 data-i18n="legal_title">Legal & Contacts</h3>
+          <p><span data-i18n="legal_fop">FOP:</span> Зайцев Олексій Юрійович / Zaitsev Oleksii</p>
+          <p><span data-i18n="legal_addr_label">Address:</span> Україна, Одеська область, м. Одеса, вул. Відрадна, буд.
+            7, кв. 7</p>
+          <p><span>Email:</span> <a href="mailto:ixonity@gmail.com" id="emailLink">ixonity@gmail.com</a></p>
+          <p><span data-i18n="legal_phone">Phone / WhatsApp:</span> <a
+              href="tel:+380771817071">+380&nbsp;77&nbsp;181&nbsp;70&nbsp;71</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="services" class="section">
+      <h2 class="reveal" data-i18n="srv_title">What we do</h2>
+      <div class="cards">
+        <article class="card glass reveal reveal-delay-1">
+          <h3 data-i18n="srv1_title">iOS Apps</h3>
+          <p data-i18n="srv1_desc">SwiftUI apps with smooth animations, offline-first, and clean architecture.</p>
+        </article>
+        <article class="card glass reveal reveal-delay-2">
+          <h3 data-i18n="srv2_title">Backends</h3>
+          <p data-i18n="srv2_desc">Firebase / Cloud Functions, auth, payments, analytics dashboards.</p>
+        </article>
+        <article class="card glass reveal reveal-delay-3">
+          <h3 data-i18n="srv3_title">QR & Analytics</h3>
+          <p data-i18n="srv3_desc">Static & dynamic QR codes, branded frames, click stats, API.</p>
+        </article>
+        <article class="card glass reveal reveal-delay-4">
+          <h3 data-i18n="srv4_title">Design</h3>
+          <p data-i18n="srv4_desc">“Liquid Glass” UI, logos, landing pages, marketing visuals.</p>
+        </article>
+        <article class="card glass reveal reveal-delay-5">
+          <h3 data-i18n="srv5_title">Games (Soon)</h3>
+          <p data-i18n="srv5_desc">Prototyping stylish, lightweight mobile games with great feel.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="portfolio" class="section">
+      <h2 class="reveal" data-i18n="port_title">Featured</h2>
+      <div class="port-phones">
+        <article class="card glass phone reveal reveal-delay-1">
+          <img src="assets/archdep-feature.png" class="phone-img" alt="Archdep.Furniture app (iPhone 15 Pro Max)">
+          <div class="phone-caption">
+            <h3>Archdep.Furniture</h3>
+            <p data-i18n="port_archdep">E‑commerce furniture app for iOS: SwiftUI UI, custom cart, Monobank acquiring,
+              analytics.</p>
+            <p><span class="magnetic"><a class="btn btn--ghost small" href="https://apps.apple.com/app/id6748553482"
+                  target="_blank" rel="noopener">App Store → Archdep</a></span></p>
+          </div>
+        </article>
+        <article class="card glass phone reveal reveal-delay-2">
+          <img src="assets/qr-feature.png" class="phone-img" alt="QR-Ixonity app (iPhone 15 Pro Max)">
+          <div class="phone-caption">
+            <h3>QR-Ixonity</h3>
+            <p data-i18n="port_qr">Advanced QR generator with custom eyes, frames, analytics and exports.</p>
+            <p><span class="magnetic"><a class="btn btn--ghost small"
+                  href="https://apps.apple.com/app/qr-ixonity/id6752862005" target="_blank" rel="noopener">App Store →
+                  QR-Ixonity</a></span></p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="contact" class="section">
+      <h2 class="reveal" data-i18n="contact_title">Support & Contacts</h2>
+      <div class="cols">
+        <form id="contactForm" class="card glass form reveal reveal-delay-1">
+          <label>
+            <span data-i18n="form_name">Your Name</span>
+            <input type="text" name="name" required placeholder="John Doe" />
+          </label>
+          <label>
+            <span data-i18n="form_email">Your Email</span>
+            <input type="email" name="email" required placeholder="you@example.com" />
+          </label>
+          <label>
+            <span data-i18n="form_msg">Message</span>
+            <textarea name="message" rows="5" required placeholder="How can we help?"></textarea>
+          </label>
+          <span class="magnetic" style="display:inline-block; align-self: flex-start;"><button class="btn btn--primary"
+              type="submit" data-i18n="form_send">Send</button></span>
+          <p class="form__hint" data-i18n="form_hint">No backend needed: opens your email app with a pre‑filled message.
+          </p>
+        </form>
+
+        <div class="col reveal reveal-delay-2">
+          <div class="card glass">
+            <h3 data-i18n="social_title">Other channels</h3>
+            <ul class="links">
+              <li><a id="mailBtn" href="mailto:ixonity@gmail.com">Email: ixonity@gmail.com</a></li>
+              <li><a id="waBtn" href="https://wa.me/380771817071" target="_blank" rel="noopener">WhatsApp:
+                  +380771817071</a></li>
+              <li><a id="igBtn" href="https://instagram.com/ixonity_studio" target="_blank" rel="noopener">Instagram:
+                  @ixonity_studio</a></li>
+            </ul>
+            <span class="magnetic"><button id="copyEmail" class="btn btn--ghost small" data-i18n="copy_btn">Copy
+                email</button></span>
+          </div>
+          <div class="card glass qr-grid">
+            <div class="qr-item">
+              <img src="assets/qr-instagram.jpg" alt="Instagram QR @ixonity_studio">
+              <p><a href="https://instagram.com/ixonity_studio" target="_blank"
+                  rel="noopener">instagram.com/ixonity_studio</a></p>
+            </div>
+            <div class="qr-item">
+              <img src="assets/qr-whatsapp.png" alt="WhatsApp QR">
+              <p><a href="https://wa.me/380771817071" target="_blank" rel="noopener">wa.me/380771817071</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer glass">
+    <p>&copy; <span id="year"></span> Ixonity · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a
+        href="impressum.html">Impressum</a></p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
