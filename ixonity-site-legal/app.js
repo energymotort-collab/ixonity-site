@@ -139,19 +139,22 @@ function boot(){
 function splitInto(el){
   const words = el.textContent.split(/\s+/).filter(Boolean);
   el.textContent = '';
+  let idx = 0;                                     // наскрізний лічильник — літери друкуються поспіль
+  const STEP = 34;                                 // мс на символ
   words.forEach((w, wi) => {
     const word = document.createElement('span');
     word.className = 'w-w';
-    [...w].forEach((ch, ci) => {
+    [...w].forEach(ch => {
       const wrap = document.createElement('span'); wrap.className = 'ch-w';
       const inner = document.createElement('span'); inner.className = 'ch-i';
       inner.textContent = ch;
-      inner.style.transitionDelay = (wi * 30 + ci * 20) + 'ms';
+      inner.style.transitionDelay = (idx++ * STEP) + 'ms';
       wrap.appendChild(inner); word.appendChild(wrap);
     });
     el.appendChild(word);
-    if (wi < words.length - 1) el.appendChild(document.createTextNode(' '));
+    if (wi < words.length - 1) { el.appendChild(document.createTextNode(' ')); idx++; }
   });
+  el.style.setProperty('--type-ms', (idx * STEP) + 'ms');   // скільки триває набір — для курсора
 }
 if (!RM) $$('.split').forEach(splitInto);
 
@@ -260,82 +263,59 @@ if (!TOUCH && !RM) (() => {
   const FS = [
 'precision highp float;',
 'uniform vec2 r;uniform float t;uniform float melt;uniform vec4 cursor;',
-'uniform vec3 b[' + N + '];',                         // x,y (0..1), z = радіус рідкої маси
-'float smin(float a,float c,float k){float h=clamp(.5+.5*(c-a)/k,0.,1.);return mix(c,a,h)-k*h*(1.-h);}',
-'float oval(vec2 p,vec3 v,vec2 shape,float mn){',
-' vec2 axis=max(vec2(1.),v.z*mn*shape);',
-' vec2 q=(p-v.xy*r)/axis;',
-' return (length(q)-1.)*min(axis.x,axis.y);}',
-'float mapf(vec2 p){',
+'uniform vec3 b[' + N + '];',                         // x,y (0..1), z = радіус
+/* м\'який максимум — півсфери зливаються перешийками, а не перетинаються ребром */
+'float smax(float a,float c,float k){float h=clamp(.5+.5*(a-c)/k,0.,1.);return mix(c,a,h)+k*h*(1.-h);}',
+/* поле висот: об\'єднання півсфер. Нормаль з нього — справжня сферична, */
+/* тому в центрі вона строго (0,0,1) і жодних артефактів там бути не може */
+'float H(vec2 p){',
 ' float mn=min(r.x,r.y);',
-' float k=mn*(.040+.024*melt);',
-' float d=oval(p,b[0],vec2(1.20,.88),mn);',
-' d=smin(d,oval(p,b[1],vec2(1.02,.96),mn),k);',
-' d=smin(d,oval(p,b[2],vec2(1.08,.94),mn),k);',
-' d=smin(d,oval(p,b[3],vec2(.96,1.08),mn),k);',
-' d=smin(d,oval(p,b[4],vec2(1.04,.98),mn),k);',
-' d=smin(d,oval(p,b[5],vec2(.98,1.03),mn),k*.88);',
-' vec2 q=p/mn;',
-' d+=(sin(q.x*2.8+t*.36)*sin(q.y*3.2-t*.29)+sin(q.x*5.1-q.y*1.7-t*.21)*.32)*mn*.0025;',
-' return d;}',
+' float k=(.085+melt*.15)*mn;',
+' float h=0.;',
+' for(int i=0;i<' + N + ';i++){',
+'   vec2 d=p-b[i].xy*r;',
+'   float rad=b[i].z*mn;',
+'   float q=rad*rad-dot(d,d);',
+'   h=smax(h,q>0.?sqrt(q):0.,k);',
+' }',
+' return h;}',
 'vec3 oil(float x){',
-' vec3 c=.5+.5*cos(6.28318*(x+vec3(0.,.31,.67)));',
-' return c*c;}',
+' vec3 c=.5+.5*cos(6.28318*(vec3(2.,2.,2.)*x+vec3(0.,.33,.67)));',
+' return c*c*1.18;}',
 'vec3 bgAt(vec2 q,float ar){',
-' vec3 c=vec3(.010,.010,.017);',
-' c+=vec3(.35,.18,.90)*.18*exp(-length((q-vec2(.17,.82))*vec2(ar,1.))*3.0);',
-' c+=vec3(.95,.12,.40)*.13*exp(-length((q-vec2(.84,.80))*vec2(ar,1.))*3.1);',
-' c+=vec3(.00,.58,.52)*.11*exp(-length((q-vec2(.82,.20))*vec2(ar,1.))*3.3);',
-' return c;}',
-'vec3 chrome(vec3 rd,float u,float ang){',
-' vec3 c=vec3(.025,.030,.026);',
-' c+=vec3(.80,.98,.34)*(.18+.24*u);',
-' c+=vec3(.92,1.,.86)*pow(max(0.,1.-abs(rd.y-.22)),18.)*.82;',
-' c+=vec3(.38,.47,.30)*pow(max(0.,1.-abs(rd.y+.38)),7.)*.54;',
-' c+=vec3(.96,.98,1.)*pow(max(rd.x*.72+rd.y*.35,0.),22.)*.90;',
-' c+=oil(ang*1.35+t*.022+u*.15)*pow(1.-abs(rd.z),2.3)*.48;',
+' vec3 c=vec3(.020,.026,.055);',                      // темно-синя основа замість чорної
+' c+=vec3(.30,.24,1.0)*.20*exp(-length((q-vec2(.20,.80))*vec2(ar,1.))*2.7);',
+' c+=vec3(1.0,.20,.46)*.14*exp(-length((q-vec2(.82,.82))*vec2(ar,1.))*3.0);',
+' c+=vec3(.0,.80,.78)*.13*exp(-length((q-vec2(.84,.24))*vec2(ar,1.))*3.1);',
 ' return c;}',
 'void main(){',
-' vec2 p=gl_FragCoord.xy;float mn=min(r.x,r.y);float ar=r.x/r.y;',
-' float d=mapf(p);',
-' float gs=max(1.6,mn*.0032);',
-' vec2 gr=vec2(mapf(p+vec2(gs,0.))-mapf(p-vec2(gs,0.)),',
-'              mapf(p+vec2(0.,gs))-mapf(p-vec2(0.,gs)));',
-' vec2 g=normalize(gr+vec2(1e-6));',
-' float u=clamp(-d/(mn*.095),0.,1.);',
-' vec2 uv=p/r;',
-' vec2 flowN=vec2(',
-'   sin(uv.y*10.3+uv.x*3.7-t*.68)+cos((uv.x+uv.y)*7.1+t*.36),',
-'   cos(uv.x*9.6-uv.y*2.6+t*.53)-sin((uv.x-uv.y)*7.8-t*.31)',
-' )*.052;',
-' vec2 cd=(uv-cursor.xy)*vec2(ar,1.);',
-' float cl=length(cd);',
-' float ripple=sin(cl*29.-t*4.2)*exp(-cl*5.0)*cursor.z;',
-' flowN+=normalize(cd+vec2(1e-5,0.))*ripple*.18;',
-' float edgeSlope=mix(1.65,.18,smoothstep(.02,.82,u));',
-' vec3 n=normalize(vec3(g*edgeSlope+flowN*(.48+u*.72),.72+u*.64));',
-' vec3 view=vec3(0.,0.,1.);vec3 rd=reflect(-view,n);',
-' float ang=atan(g.y,g.x)/6.28318;',
-' vec3 L=normalize(vec3(-.46,.72,.53));',
-' float spec=pow(max(dot(reflect(-L,n),view),0.),86.);',
-' float fres=pow(1.-clamp(n.z,0.,1.),2.2);',
-' vec3 base=bgAt(p/r,ar);',
-' vec3 refr=bgAt((p+n.xy*mn*(.055+.072*fres))/r,ar);',
-' vec3 metal=chrome(rd,u,ang);',
-' float vein=pow(.5+.5*sin(uv.x*21.+sin(uv.y*9.-t*.47)*2.4-t*.72),10.)*u;',
-' metal=mix(refr*1.34,metal,.82);',
-' metal+=vec3(1.,1.,.96)*spec*1.28;',
-' metal+=oil(uv.x*.46-uv.y*.28+t*.026)*vein*.14;',
-' metal+=vec3(.847,1.,.243)*fres*.10;',
-' float body=1.-smoothstep(-1.25,1.25,d);',
-' float rim=exp(-(d*d)/1.9);',
-' float aura=exp(-abs(d)/(mn*.030));',
-' vec3 col=mix(base,metal,body);',
-' col+=oil(ang*1.28+t*.020+uv.x*.08)*rim*(1.52+.46*fres);',
-' col+=vec3(.847,1.,.243)*aura*.042;',
-' col=pow(max(col,0.),vec3(.91));',
-' float grain=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.545)*.013;',
-' gl_FragColor=vec4(col+grain-.0065,1.);',
+' vec2 p=gl_FragCoord.xy;',
+' float mn=min(r.x,r.y);float ar=r.x/r.y;',
+' float h=H(p);',
+' vec3 bg=bgAt(p/r,ar);',
+' float e=1.3;',
+' float hx=(H(p+vec2(e,0.))-H(p-vec2(e,0.)))/(2.*e);',
+' float hy=(H(p+vec2(0.,e))-H(p-vec2(0.,e)))/(2.*e);',
+' vec3 n=normalize(vec3(-hx,-hy,1.));',
+' float nz=clamp(n.z,0.,1.);',
+' float mask=smoothstep(0.,2.0,h);',
+' float fres=pow(1.-nz,2.7);',
+/* товщина плівки залежить від кута огляду — звідси концентрична райдуга, як у справжній бульбашці */
+' vec3 film=oil(.34/max(nz,.10)+t*.045);',
+' vec3 L=normalize(vec3(-.42,.62,.66));',
+' float dif=max(dot(n,L),0.);',
+' float spe=pow(max(dot(reflect(-L,n),vec3(0.,0.,1.)),0.),96.);',
+' vec3 lime=vec3(.847,1.,.243);',
+' vec3 skin=mix(bg*1.05,lime*(.34+dif*.92),.68);',    // тіло лишається кислотно-зеленим
+' skin=mix(skin,film,.10+fres*.72);',                 // центр зелений, райдуга набігає до краю
+' skin+=vec3(1.)*spe*1.05;',
+' float rim=exp(-(h*h)/70.)*mask;',                   // тонка, але помітна кромка
+' vec3 col=mix(bg,skin,mask);',
+' col+=film*rim*2.05;',
+' col+=lime*exp(-h/(mn*.05))*.075*(1.-mask);',
+' col=pow(max(col,0.),vec3(.92));',
+' float grain=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.545)*.014;',
+' gl_FragColor=vec4(col+grain-.007,1.);',
 '}'].join('\n');
 
   const sh = (type, src) => {
@@ -419,6 +399,7 @@ if (!TOUCH && !RM) (() => {
 
     const rawMorph = .5 - .5 * Math.cos(time * .31);
     const morph = rawMorph * rawMorph * (3 - 2 * rawMorph);
+    const spread = 1 + .58 * (.5 - .5 * Math.cos(time * .085));   // 74 с: то розходяться, то стікаються
     const driftX = Math.sin(time * .13) * .014 + Math.sin(time * .047 + 1.2) * .006;
     const driftY = Math.cos(time * .11 + .7) * .012 + Math.sin(time * .043) * .005;
     const portraitMix = clamp((cv.clientWidth / Math.max(1, cv.clientHeight)) * 1.7, .42, 1);
@@ -430,6 +411,8 @@ if (!TOUCH && !RM) (() => {
       let tx = lerp(a[0], z[0], morph) + driftX;
       let ty = lerp(a[1], z[1], morph);
       ty = .52 + (ty - .52) * portraitMix + driftY;
+      tx = .50 + (tx - .50) * spread;                             // розліт від центру купи
+      ty = .52 + (ty - .52) * spread;
       tx += Math.sin(time * (.18 + i*.008) + i*1.71) * (.010 + i*.0012);
       ty += Math.cos(time * (.16 + i*.009) + i*1.37) * (.009 + i*.0010);
 
@@ -464,7 +447,7 @@ if (!TOUCH && !RM) (() => {
       }
       data[i*3] = p.x; data[i*3+1] = p.y; data[i*3+2] = p.cr;
     }
-    const targetMelt = clamp(.64 + near*.24 + mouse.energy*.12, 0, 1);
+    const targetMelt = clamp(.24 + near*.46 + mouse.energy*.20, 0, 1);
     melt += (targetMelt - melt) * follow(targetMelt > melt ? 3.0 : 1.6, dt);
   };
 
