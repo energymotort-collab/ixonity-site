@@ -92,7 +92,10 @@ function setMarket(market){
 }
 async function resolveMarket(){
   if (pinnedMarket) return;                       // вибір вручну важливіший за геовизначення
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  /* GitHub Pages і локальні файли не виконують edge-функцію, тож не смикаємо її
+     даремно: інакше в консолі назавжди лишається червоний 404 на api/market */
+  const noEdge = location.protocol === 'file:' || /\.github\.io$/i.test(location.hostname);
+  if (noEdge || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
     setMarket((localTimezone || ukrainianBrowser) ? 'ua' : 'global');
     return;
   }
@@ -398,6 +401,9 @@ if (!TOUCH && !RM) (() => {
 ' float dif=clamp(dot(n,normalize(vec3(-.35,.55,.76)))+.74,.62,1.22);',
 ' float spe=pow(max(dot(reflect(-normalize(vec3(-.35,.55,.76)),n),vec3(0.,0.,1.)),0.),34.);',
 ' c*=dif*2.10;',
+/* піднімаємо насиченість, щоб фарба була соковита, а не припилена */
+' float lum=dot(c,vec3(.299,.587,.114));',
+' c=max(mix(vec3(lum),c,1.55),0.);',
 /* дешеве сяйво: вісім відліків по колу, у квадраті — світиться лише яскраве */
 ' vec3 blm=vec3(0.);',
 ' for(int i=0;i<8;i++){',
@@ -406,7 +412,7 @@ if (!TOUCH && !RM) (() => {
 ' blm*=.125*2.10;',
 ' float a=clamp(length(c)*1.5,0.,1.);',
 ' vec3 col=night(vUv)*(1.-a*.55)+c;',
-' col+=blm*blm*1.9;',
+' col+=blm*blm*1.45;',
 ' col+=vec3(1.)*spe*a*.55;',
 ' col=col/(1.+col*.22);',
 ' col=pow(max(col,0.),vec3(.90));',
@@ -515,7 +521,8 @@ if (!TOUCH && !RM) (() => {
   size();
 
   /* ---------- параметри рідини ---------- */
-  const CURL = 28, PRESS = .82, ITER = 18, DISS_V = .20, DISS_D = 1.10, RADIUS = .0024;
+  const CURL = 21, PRESS = .82, ITER = 18, DISS_V = .18, DISS_D = 1.85, RADIUS = .0026;
+  const SPEED = .50;                                 // загальний темп течії
 
   const splat = (x, y, dx, dy, color) => {
     P.splat.use();
@@ -535,9 +542,11 @@ if (!TOUCH && !RM) (() => {
 
   /* три джерела ходять по власних траєкторіях і безперервно вливають фарбу */
   const SRC = [
-    { fx:.079, fy:.111, px:1.7, py:0.4, ax:.37, ay:.27, c:[.847,1.,.243], k:1.18 },
-    { fx:.061, fy:.087, px:3.9, py:2.2, ax:.41, ay:.22, c:[.13,.45,1.00], k:.55 },
-    { fx:.045, fy:.067, px:5.1, py:1.1, ax:.29, ay:.31, c:[.62,.26,1.00], k:.30 }
+    { fx:.044, fy:.061, px:1.7, py:0.4, ax:.37, ay:.27, c:[.780,1.00,.060], k:1.24 },
+    { fx:.036, fy:.050, px:3.9, py:2.2, ax:.42, ay:.23, c:[.030,.330,1.00], k:.60 },
+    { fx:.028, fy:.040, px:5.1, py:1.1, ax:.30, ay:.32, c:[.600,.060,1.00], k:.32 },
+    { fx:.032, fy:.045, px:0.6, py:4.3, ax:.34, ay:.20, c:[.000,.960,.800], k:.34 },
+    { fx:.024, fy:.035, px:2.8, py:5.6, ax:.26, ay:.29, c:[1.000,.060,.480], k:.24 }
   ];
   const srcAt = (s, t) => [ .5 + Math.sin(t*s.fx*6.28318 + s.px)*s.ax,
                             .5 + Math.cos(t*s.fy*6.28318 + s.py)*s.ay ];
@@ -624,7 +633,7 @@ if (!TOUCH && !RM) (() => {
     for (let i = 0; i < 9; i++) {
       const a = i * 2.34, rr = .16 + (i % 3) * .09;
       splat(.5 + Math.cos(a)*rr*1.6, .5 + Math.sin(a)*rr,
-            Math.cos(a)*900, Math.sin(a)*900,
+            Math.cos(a)*560, Math.sin(a)*560,
             PAL[i % PAL.length].map(v => v * .55));
     }
     seeded = true;
@@ -647,8 +656,8 @@ if (!TOUCH && !RM) (() => {
       const a = srcAt(s, time), b = srcAt(s, time + .05);
       const vx = (b[0]-a[0]) / .05, vy = (b[1]-a[1]) / .05;
       const pulse = .55 + .45 * Math.sin(time * (.31 + i*.13) + i*2.1);
-      splat(a[0], a[1], vx*260*s.k, vy*260*s.k,
-            [ s.c[0]*.150*s.k*pulse, s.c[1]*.150*s.k*pulse, s.c[2]*.150*s.k*pulse ]);
+      splat(a[0], a[1], vx*135*s.k, vy*135*s.k,
+            [ s.c[0]*.105*s.k*pulse, s.c[1]*.105*s.k*pulse, s.c[2]*.105*s.k*pulse ]);
     }
 
     if (pointer.moved) {
@@ -657,13 +666,13 @@ if (!TOUCH && !RM) (() => {
       if (sp > .0004) {
         pointer.hue = (pointer.hue + 1) % PAL.length;
         const c = PAL[pointer.hue | 0];
-        splat(pointer.x, pointer.y, pointer.dx*1400, pointer.dy*1400,
+        splat(pointer.x, pointer.y, pointer.dx*900, pointer.dy*900,
               [c[0]*.22, c[1]*.22, c[2]*.22]);
       }
       pointer.dx *= .55; pointer.dy *= .55;
     }
 
-    stepSim(dt);
+    stepSim(dt * SPEED);
 
     P.show.use();
     gl.uniform2f(P.show.u.texel, dye.tx, dye.ty);
@@ -917,7 +926,25 @@ ${d.msg}
 
 —
 ${L('Надіслано з сайту ixonity','Sent from the ixonity site')}`;
-    const subject = L('Заявка з сайту — ','Website enquiry — ') + d.name;
+    /* Тема одразу каже, що за заявка: тип, бюджет, ім'я */
+    const subject = L('Заявка: ', 'Enquiry: ') +
+      [d.ptype, d.budget, d.name].filter(Boolean).join(' · ');
+
+    /* Поля з людськими назвами: FormSubmit друкує їх як таблицю,
+       тому лист читається без розшифровок */
+    const fields = {};
+    fields[L("Ім'я", 'Name')]                       = d.name || '—';
+    fields[L('Компанія', 'Company')]                = d.company || '—';
+    fields['Email']                                 = d.email || '—';
+    fields[L('Телефон / Telegram', 'Phone / Telegram')] = d.phone || '—';
+    fields[L('Країна', 'Country')]                  = d.country || '—';
+    fields[L('Поточний сайт', 'Current website')]   = d.website || '—';
+    fields[L('Тип проєкту', 'Project type')]        = d.ptype || '—';
+    fields[L('Бюджет', 'Budget')]                   = d.budget || '—';
+    fields[L('Бажаний старт', 'Preferred start')]   = d.deadline || '—';
+    fields[L('Задача', 'Brief')]                    = d.msg || '—';
+    fields[L('Сторінка', 'Page')]                   = location.href;
+    fields[L('Мова сайту', 'Site language')]        = (LANG || 'ua').toUpperCase();
     if (!CFG.formEndpoint) {
       location.href = `mailto:${CFG.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       return;
@@ -928,7 +955,11 @@ ${L('Надіслано з сайту ixonity','Sent from the ixonity site')}`;
       /* Тіло як form-urlencoded і без власних заголовків: браузер не робить
          preflight-запит, тому політика CORS не може заблокувати відправку. */
       const payload = new URLSearchParams({
-        ...d, message: body, _subject: subject, _template:'table', _url:location.href
+        ...fields,
+        _subject: subject,
+        _template: 'table',
+        _captcha: 'false',
+        _replyto: d.email || CFG.email
       });
       const r = await fetch(CFG.formEndpoint, { method:'POST', body:payload });
       const result = await r.json().catch(() => ({}));
@@ -939,7 +970,7 @@ ${L('Надіслано з сайту ixonity','Sent from the ixonity site')}`;
     } catch(_) {
       /* Запасний шлях: звичайна відправка форми в прихований iframe.
          Це не fetch, тож правила CORS до неї не застосовуються взагалі. */
-      if (postThroughFrame({ ...d, message: body, _subject: subject })) {
+      if (postThroughFrame({ ...fields, _subject: subject, _replyto: d.email || CFG.email })) {
         setStatus(L('Дякуємо — заявку надіслано. Відповімо протягом робочого дня.','Thank you — your enquiry was sent. We reply within one business day.'), 'ok');
         flash(L('Заявку надіслано.','Enquiry sent.'));
         f.reset();
