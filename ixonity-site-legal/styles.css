@@ -386,6 +386,8 @@ p{margin:0}
 .form button[type="submit"]:disabled{cursor:wait;opacity:.62;transform:none}
 .form__status{min-height:1.3em;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.04em;color:var(--dim)}
 .form__status.ok{color:#5faf29}.form__status.err{color:#d94a55}
+.form__status a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.form__status a:hover{color:var(--acid)}
 .form__h{font-size:.75rem;color:var(--faint);line-height:1.5}
 .form__h a{text-decoration:underline;text-underline-offset:3px;color:inherit}
 .ch{display:grid;gap:10px;align-content:start}
