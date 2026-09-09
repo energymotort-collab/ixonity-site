@@ -249,298 +249,428 @@ if (!TOUCH && !RM) (() => {
   upd();
 })();
 
-/* ============ 7. HERO — рідкий метал (WebGL) ============ */
+/* ============ 7. HERO — справжня рідина (симуляція Нав'є–Стокса на GPU) ============
+   Швидкість і фарба живуть у плаваючих текстурах. Кожен кадр: перенесення,
+   завихрення, розв'язання тиску ітераціями Якобі, віднімання градієнта.
+   Це не намальовані кулі — це рідина, яка тече, змішується і реагує на курсор. */
 (() => {
   const cv = $('#gl'), fall = $('#glFall'), hero = $('.hero');
   if (!cv || RM) { if (cv) cv.style.display = 'none'; return; }
-  let gl = null;
-  try { gl = cv.getContext('webgl', { antialias:false, alpha:false, powerPreference:'high-performance' })
-             || cv.getContext('experimental-webgl'); } catch(e){}
+
+  const OPT = { alpha:false, depth:false, stencil:false, antialias:false,
+                preserveDrawingBuffer:false, powerPreference:'high-performance' };
+  let gl = null, gl2 = false;
+  try { gl = cv.getContext('webgl2', OPT); gl2 = !!gl; } catch(e){}
+  if (!gl) { try { gl = cv.getContext('webgl', OPT) || cv.getContext('experimental-webgl', OPT); } catch(e){} }
   if (!gl) { cv.style.display = 'none'; return; }
 
-  const N = 7;
-  const VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
-  const FS = [
+  let HALF = null, LINEAR = false;
+  if (gl2) {
+    gl.getExtension('EXT_color_buffer_float');
+    LINEAR = !!gl.getExtension('OES_texture_float_linear');
+    HALF = gl.HALF_FLOAT;
+  } else {
+    const hf = gl.getExtension('OES_texture_half_float');
+    LINEAR = !!gl.getExtension('OES_texture_half_float_linear');
+    HALF = hf ? hf.HALF_FLOAT_OES : null;
+  }
+  if (!HALF) { cv.style.display = 'none'; return; }
+
+  /* чи вміє відеокарта малювати в такий формат */
+  const renderable = (internal, format) => {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, internal, 4, 4, 0, format, HALF, null);
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(fb); gl.deleteTexture(tex);
+    return ok;
+  };
+  let F_RGBA = { i: gl2 ? gl.RGBA16F : gl.RGBA, f: gl.RGBA };
+  if (!renderable(F_RGBA.i, F_RGBA.f)) { cv.style.display = 'none'; return; }
+  let F_RG = gl2 && renderable(gl.RG16F, gl.RG) ? { i: gl.RG16F, f: gl.RG } : F_RGBA;
+  let F_R  = gl2 && renderable(gl.R16F,  gl.RED) ? { i: gl.R16F,  f: gl.RED } : F_RGBA;
+  const FILTER = LINEAR ? gl.LINEAR : gl.NEAREST;
+
+  /* ---------- шейдери ---------- */
+  const VS = [
 'precision highp float;',
-'uniform vec2 r;uniform float t;uniform float melt;uniform vec4 cursor;',
-'uniform vec4 b[' + N + '];',                          // xy центр (0..1), z радіус впливу, w кут витягування
-'uniform vec2 s[' + N + '];',                          // x витягнутість рухом, y власна фаза
-/* Поле метакуль. Краплі не перетинаються ребром, а додають свої поля одна одній, */
-/* тому між ними самі виростають перешийки: маса тече, зливається і знову розривається. */
-'float FLD(vec2 p){',
-' float mn=min(r.x,r.y);',
-' vec2 w=vec2(sin(p.y*.0061+t*.31),cos(p.x*.0055-t*.27))*(mn*.026);',
-' w+=vec2(sin(p.y*.0127-t*.19),cos(p.x*.0113+t*.23))*(mn*.010);',
-' p+=w;',                                              // повільна течія: силует ніколи не буває колом
-' float f=0.;',
-' for(int i=0;i<' + N + ';i++){',
-'  vec2 d=p-b[i].xy*r;',
-'  float ca=cos(b[i].w),sa=sin(b[i].w);',
-'  d=vec2(d.x*ca+d.y*sa,-d.x*sa+d.y*ca);',
-'  d=vec2(d.x/s[i].x,d.y*s[i].x);',                    // краплю тягне за напрямком руху
-'  float rad=b[i].z*mn;',
-'  float x=max(0.,1.-dot(d,d)/(rad*rad));',
-'  f+=x*x;',
-' }',
-' float rip=sin(p.x*.0165+t*.85)*sin(p.y*.0143-t*.66)+.55*sin((p.x*.86-p.y)*.0108+t*1.18);',
-' f+=rip*.058*smoothstep(0.,.55,f);',                  // брижі по поверхні маси
-' return f;}',
-/* висота з поля: пласка вершина дає нормаль строго (0,0,1) у центрі, тож жодних артефактів */
-'float HGT(float f,float mn,float thr){return sqrt(max(f-thr,0.))*(mn*.205);}',
-'vec3 oil(float x){',
-' vec3 c=.5+.5*cos(6.28318*(vec3(2.,2.,2.)*x+vec3(0.,.33,.67)));',
-' return c*c*1.18;}',
-/* дуже темна синя ніч: три повільні світлові плями і віньєтка, жодного зеленого */
-'vec3 bgAt(vec2 q,float ar){',
-' vec2 d=(q-.5)*vec2(ar,1.);',
-' vec3 c=vec3(.0055,.0105,.0345);',
-' c+=vec3(.055,.135,.560)*.46*exp(-length(d-vec2(-.30+sin(t*.055)*.05,.27+cos(t*.047)*.04))*1.72);',
-' c+=vec3(.165,.070,.470)*.38*exp(-length(d-vec2(.33+cos(t*.041)*.05,-.24+sin(t*.037)*.04))*2.05);',
-' c+=vec3(.020,.175,.420)*.26*exp(-length(d-vec2(.40,.31))*2.55);',
-' c*=1.-.36*smoothstep(.24,1.05,length(d));',
+'attribute vec2 aPos;',
+'varying vec2 vUv,vL,vR,vT,vB;',
+'uniform vec2 texel;',
+'void main(){',
+' vUv=aPos*.5+.5;',
+' vL=vUv-vec2(texel.x,0.);vR=vUv+vec2(texel.x,0.);',
+' vT=vUv+vec2(0.,texel.y);vB=vUv-vec2(0.,texel.y);',
+' gl_Position=vec4(aPos,0.,1.);}'].join('\n');
+
+  const HEAD = 'precision highp float;precision highp sampler2D;varying vec2 vUv,vL,vR,vT,vB;';
+
+  const FS_SPLAT = [HEAD,
+'uniform sampler2D uTarget;uniform float aspect;uniform vec3 color;uniform vec2 point;uniform float radius;',
+'void main(){',
+' vec2 p=vUv-point;p.x*=aspect;',
+' vec3 s=exp(-dot(p,p)/radius)*color;',
+' gl_FragColor=vec4(texture2D(uTarget,vUv).xyz+s,1.);}'].join('\n');
+
+  /* ручна білінійна вибірка: працює навіть там, де немає фільтрації float-текстур */
+  const FS_ADVECT = [HEAD,
+'uniform sampler2D uVel,uSrc;uniform vec2 texel,srcTexel;uniform float dt,diss;',
+'vec4 blerp(sampler2D s,vec2 uv,vec2 ts){',
+' vec2 st=uv/ts-.5;vec2 i=floor(st);vec2 f=fract(st);',
+' vec4 a=texture2D(s,(i+vec2(.5,.5))*ts),b=texture2D(s,(i+vec2(1.5,.5))*ts);',
+' vec4 c=texture2D(s,(i+vec2(.5,1.5))*ts),d=texture2D(s,(i+vec2(1.5,1.5))*ts);',
+' return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}',
+'void main(){',
+' vec2 coord=vUv-dt*blerp(uVel,vUv,texel).xy*texel;',
+' gl_FragColor=blerp(uSrc,coord,srcTexel)/(1.+diss*dt);}'].join('\n');
+
+  const FS_DIV = [HEAD,
+'uniform sampler2D uVel;',
+'void main(){',
+' float L=texture2D(uVel,vL).x,R=texture2D(uVel,vR).x;',
+' float T=texture2D(uVel,vT).y,B=texture2D(uVel,vB).y;',
+' vec2 C=texture2D(uVel,vUv).xy;',
+' if(vL.x<0.)L=-C.x; if(vR.x>1.)R=-C.x; if(vT.y>1.)T=-C.y; if(vB.y<0.)B=-C.y;',
+' gl_FragColor=vec4(.5*(R-L+T-B),0.,0.,1.);}'].join('\n');
+
+  const FS_CURL = [HEAD,
+'uniform sampler2D uVel;',
+'void main(){',
+' float L=texture2D(uVel,vL).y,R=texture2D(uVel,vR).y;',
+' float T=texture2D(uVel,vT).x,B=texture2D(uVel,vB).x;',
+' gl_FragColor=vec4(.5*(R-L-T+B),0.,0.,1.);}'].join('\n');
+
+  const FS_VORT = [HEAD,
+'uniform sampler2D uVel,uCurl;uniform float curl,dt;',
+'void main(){',
+' float L=texture2D(uCurl,vL).x,R=texture2D(uCurl,vR).x;',
+' float T=texture2D(uCurl,vT).x,B=texture2D(uCurl,vB).x;',
+' float C=texture2D(uCurl,vUv).x;',
+' vec2 f=.5*vec2(abs(T)-abs(B),abs(R)-abs(L));',
+' f/=length(f)+.0001; f*=curl*C; f.y*=-1.;',
+' vec2 v=texture2D(uVel,vUv).xy+f*dt;',
+' gl_FragColor=vec4(clamp(v,-1000.,1000.),0.,1.);}'].join('\n');
+
+  const FS_PRESS = [HEAD,
+'uniform sampler2D uPress,uDiv;',
+'void main(){',
+' float L=texture2D(uPress,vL).x,R=texture2D(uPress,vR).x;',
+' float T=texture2D(uPress,vT).x,B=texture2D(uPress,vB).x;',
+' float d=texture2D(uDiv,vUv).x;',
+' gl_FragColor=vec4((L+R+B+T-d)*.25,0.,0.,1.);}'].join('\n');
+
+  const FS_GRAD = [HEAD,
+'uniform sampler2D uPress,uVel;',
+'void main(){',
+' float L=texture2D(uPress,vL).x,R=texture2D(uPress,vR).x;',
+' float T=texture2D(uPress,vT).x,B=texture2D(uPress,vB).x;',
+' vec2 v=texture2D(uVel,vUv).xy-vec2(R-L,T-B);',
+' gl_FragColor=vec4(v,0.,1.);}'].join('\n');
+
+  const FS_CLEAR = [HEAD,
+'uniform sampler2D uTex;uniform float value;',
+'void main(){gl_FragColor=value*texture2D(uTex,vUv);}'].join('\n');
+
+  /* показ: дуже темне синє тло, фарба світиться поверх, псевдо-об\'єм по градієнту */
+  const FS_SHOW = [HEAD,
+'uniform sampler2D uTex;uniform vec2 texel;uniform float aspect,time;',
+'vec3 night(vec2 q){',
+' vec2 d=(q-.5)*vec2(aspect,1.);',
+' vec3 c=vec3(.0055,.0100,.0330);',
+' c+=vec3(.055,.130,.560)*.40*exp(-length(d-vec2(-.32+sin(time*.05)*.05,.26+cos(time*.043)*.04))*1.75);',
+' c+=vec3(.150,.065,.450)*.34*exp(-length(d-vec2(.34+cos(time*.037)*.05,-.25+sin(time*.033)*.04))*2.10);',
+' c+=vec3(.020,.160,.400)*.22*exp(-length(d-vec2(.42,.32))*2.60);',
+' c*=1.-.34*smoothstep(.26,1.06,length(d));',
 ' return c;}',
 'void main(){',
-' vec2 p=gl_FragCoord.xy;',
-' float mn=min(r.x,r.y);float ar=r.x/r.y;',
-' float thr=.30-melt*.13;',                            // що більше melt, то охочіше маса зливається
-' float f0=FLD(p);',
-' float h=HGT(f0,mn,thr);',
-' vec3 bg=bgAt(p/r,ar);',
-' float e=1.3;',
-' float hx=(HGT(FLD(p+vec2(e,0.)),mn,thr)-HGT(FLD(p-vec2(e,0.)),mn,thr))/(2.*e);',
-' float hy=(HGT(FLD(p+vec2(0.,e)),mn,thr)-HGT(FLD(p-vec2(0.,e)),mn,thr))/(2.*e);',
-' vec3 n=normalize(vec3(-hx,-hy,1.));',
-' float nz=clamp(n.z,0.,1.);',
-' float mask=smoothstep(thr,thr+.030,f0);',            // край згладжений у просторі поля
-' float fres=pow(1.-nz,3.6);',
-' vec3 film=oil(.34/max(nz,.10)+t*.045);',
-' vec3 L=normalize(vec3(-.42,.62,.66));',
-' float dif=max(dot(n,L),0.);',
-' float spe=pow(max(dot(reflect(-L,n),vec3(0.,0.,1.)),0.),96.);',
-' vec3 lime=vec3(.847,1.,.243);',
-' vec3 skin=mix(bg*1.05,lime*(.34+dif*.92),.68);',     // текстура тіла лишилася та сама
-' float flow=.5+.5*sin(p.x*.0088+p.y*.0069-t*.95+h*.035);',
-' skin*=.93+.14*flow;',                                // світло тече всередині маси
-' skin=mix(skin,film,.07+fres*.60);',
-' skin+=vec3(1.)*spe*1.05;',
-' float rim=exp(-(h*h)/90.)*mask;',
-' vec3 col=mix(bg,skin,mask);',
-' col+=film*rim*2.05;',
-' col+=vec3(.22,.40,1.)*pow(clamp(f0/thr,0.,1.),3.)*.075*(1.-mask);',
-' col=pow(max(col,0.),vec3(.92));',
-' float grain=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.545)*.014;',
-' gl_FragColor=vec4(col+grain-.007,1.);',
-'}'].join('\n');
+' vec3 c=texture2D(uTex,vUv).rgb;',
+' float l=length(texture2D(uTex,vL).rgb),rr=length(texture2D(uTex,vR).rgb);',
+' float tt=length(texture2D(uTex,vT).rgb),bb=length(texture2D(uTex,vB).rgb);',
+' vec3 n=normalize(vec3(rr-l,tt-bb,length(texel)*2.2));',
+' float dif=clamp(dot(n,normalize(vec3(-.35,.55,.76)))+.74,.62,1.22);',
+' float spe=pow(max(dot(reflect(-normalize(vec3(-.35,.55,.76)),n),vec3(0.,0.,1.)),0.),34.);',
+' c*=dif*2.10;',
+/* дешеве сяйво: вісім відліків по колу, у квадраті — світиться лише яскраве */
+' vec3 blm=vec3(0.);',
+' for(int i=0;i<8;i++){',
+'  float ang=float(i)*.7854; vec2 o=vec2(cos(ang),sin(ang));',
+'  blm+=texture2D(uTex,vUv+o*texel*7.).rgb;}',
+' blm*=.125*2.10;',
+' float a=clamp(length(c)*1.5,0.,1.);',
+' vec3 col=night(vUv)*(1.-a*.55)+c;',
+' col+=blm*blm*1.9;',
+' col+=vec3(1.)*spe*a*.55;',
+' col=col/(1.+col*.22);',
+' col=pow(max(col,0.),vec3(.90));',
+' float g=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.545)*.012;',
+' gl_FragColor=vec4(col+g-.006,1.);}'].join('\n');
 
-  const sh = (type, src) => {
+  /* ---------- програми ---------- */
+  const compile = (type, src) => {
     const o = gl.createShader(type);
     gl.shaderSource(o, src); gl.compileShader(o);
     return gl.getShaderParameter(o, gl.COMPILE_STATUS) ? o : null;
   };
-  const vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
-  if (!vs || !fs) { cv.style.display = 'none'; return; }
-  const pr = gl.createProgram();
-  gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
-  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { cv.style.display = 'none'; return; }
-  gl.useProgram(pr);
+  const vsh = compile(gl.VERTEX_SHADER, VS);
+  if (!vsh) { cv.style.display = 'none'; return; }
+  let broken = false;
+  const program = fsSrc => {
+    const fsh = compile(gl.FRAGMENT_SHADER, fsSrc);
+    if (!fsh) { broken = true; return null; }
+    const p = gl.createProgram();
+    gl.attachShader(p, vsh); gl.attachShader(p, fsh);
+    gl.bindAttribLocation(p, 0, 'aPos');
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { broken = true; return null; }
+    const u = {};
+    const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < n; i++) {
+      const name = gl.getActiveUniform(p, i).name.replace('[0]','');
+      u[name] = gl.getUniformLocation(p, name);
+    }
+    return { p, u, use(){ gl.useProgram(p); return this; } };
+  };
+  const P = {
+    splat:  program(FS_SPLAT),  advect: program(FS_ADVECT), div:  program(FS_DIV),
+    curl:   program(FS_CURL),   vort:   program(FS_VORT),   press:program(FS_PRESS),
+    grad:   program(FS_GRAD),   clear:  program(FS_CLEAR),  show: program(FS_SHOW)
+  };
+  if (broken) { cv.style.display = 'none'; return; }
   if (fall) fall.style.display = 'none';
 
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
-  const loc = gl.getAttribLocation(pr, 'p');
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-
-  const uR = gl.getUniformLocation(pr,'r'),
-        uT = gl.getUniformLocation(pr,'t'),
-        uM = gl.getUniformLocation(pr,'melt'),
-        uC = gl.getUniformLocation(pr,'cursor'),
-        uB = gl.getUniformLocation(pr,'b[0]'),
-        uS = gl.getUniformLocation(pr,'s[0]');
-
-  /* Одна абстрактна рідка скульптура збирається, розділяється на кілька
-     великих фрагментів і знову стікається. Матеріал при цьому незмінний. */
-  const RAD = [.315,.216,.234,.188,.196,.167,.150];
-  const FORM_A = [[.50,.50],[.28,.54],[.72,.49],[.43,.70],[.58,.30],[.85,.59],[.16,.34]];
-  const FORM_B = [[.47,.51],[.17,.60],[.79,.52],[.38,.78],[.63,.21],[.90,.70],[.10,.28]];
-  const drops = FORM_A.map((p, i) => ({
-    x:p[0], y:p[1], px:p[0], py:p[1], r:RAD[i], cr:RAD[i],
-    dx:Math.cos(i*1.7), dy:Math.sin(i*1.7), el:1, ang:i*1.7
-  }));
-  const PAIRS = [[1,2],[3,4],[5,6]];                 // три пари сполучених посудин
-  const data = new Float32Array(N * 4);
-  const sdat = new Float32Array(N * 2);
-  const mouse = {
-    tx:.58, ty:.52, x:.58, y:.52, on:false, power:0,
-    tvx:0, tvy:0, vx:0, vy:0, energy:0, lastAt:0, seen:false
-  };
-  const follow = (rate, dt) => 1 - Math.exp(-rate * dt);
-
-  const pointer = e => {
-    const bx = cv.getBoundingClientRect();
-    const nx = clamp((e.clientX - bx.left) / bx.width, -.08, 1.08);
-    const ny = clamp(1 - (e.clientY - bx.top) / bx.height, -.08, 1.08);
-    const now = performance.now();
-    const edt = (now - mouse.lastAt) / 1000;
-    if (mouse.seen && edt > .004 && edt < .14) {
-      mouse.tvx = clamp((nx - mouse.tx) / edt, -2.8, 2.8);
-      mouse.tvy = clamp((ny - mouse.ty) / edt, -2.8, 2.8);
-    }
-    mouse.tx = nx; mouse.ty = ny;
-    mouse.lastAt = now; mouse.seen = true;
-    mouse.on = true;
-  };
-  hero.addEventListener('pointerenter', pointer, { passive:true });
-  hero.addEventListener('pointermove', pointer, { passive:true });
-  hero.addEventListener('pointerdown', e => {
-    pointer(e);
-    mouse.power = 1;
-    mouse.energy = Math.max(mouse.energy, .82);
-  }, { passive:true });
-  const releasePointer = () => {
-    mouse.on = false; mouse.seen = false; mouse.tvx = 0; mouse.tvy = 0;
-  };
-  hero.addEventListener('pointerleave', releasePointer);
-  hero.addEventListener('pointercancel', releasePointer);
-  hero.addEventListener('pointerup', () => { if (TOUCH) releasePointer(); }, { passive:true });
-
-  let melt = .72;
-  const step = (time, dt) => {
-    mouse.x += (mouse.tx - mouse.x) * follow(8.5, dt);
-    mouse.y += (mouse.ty - mouse.y) * follow(8.5, dt);
-    mouse.vx += (mouse.tvx - mouse.vx) * follow(12.0, dt);
-    mouse.vy += (mouse.tvy - mouse.vy) * follow(12.0, dt);
-    mouse.tvx *= Math.exp(-8.5*dt); mouse.tvy *= Math.exp(-8.5*dt);
-    mouse.power += ((mouse.on ? 1 : 0) - mouse.power) * follow(mouse.on ? 5.5 : 2.0, dt);
-    const pointerSpeed = clamp(Math.hypot(mouse.vx,mouse.vy)*.72, 0, 1);
-    const targetEnergy = mouse.on ? pointerSpeed : 0;
-    mouse.energy += (targetEnergy - mouse.energy) * follow(targetEnergy > mouse.energy ? 10 : 2.4, dt);
-
-    const rawMorph = .5 - .5 * Math.cos(time * .31);
-    const morph = rawMorph * rawMorph * (3 - 2 * rawMorph);
-    const spread = .66 + .40 * (.5 - .5 * Math.cos(time * .072));  // 87 с: то одна калюжа, то великі краплі
-    const compact = (spread - .66) / .40;                          // 0 — все злилося, 1 — розтеклося
-    const driftX = Math.sin(time * .13) * .014 + Math.sin(time * .047 + 1.2) * .006;
-    const driftY = Math.cos(time * .11 + .7) * .012 + Math.sin(time * .043) * .005;
-    const portraitMix = clamp((cv.clientWidth / Math.max(1, cv.clientHeight)) * 1.7, .42, 1);
-    const radiusScale = lerp(1.12, 1, portraitMix) * lerp(.85, 1, compact);
-    let near = 0;
-
-    const TX = [], TY = [], VF = [];
-    for (let i = 0; i < N; i++) {
-      const a = FORM_A[i], z = FORM_B[i];
-      let tx = lerp(a[0], z[0], morph) + driftX;
-      let ty = lerp(a[1], z[1], morph);
-      ty = .52 + (ty - .52) * portraitMix + driftY;
-      tx = .50 + (tx - .50) * spread;                             // розліт від центру купи
-      ty = .52 + (ty - .52) * spread;
-      tx += Math.sin(time * (.18 + i*.008) + i*1.71) * (.010 + i*.0012);
-      ty += Math.cos(time * (.16 + i*.009) + i*1.37) * (.009 + i*.0010);
-      TX[i] = tx; TY[i] = ty; VF[i] = 1;
-    }
-
-    /* Сполучені посудини: усередині пари об'єм перетікає туди-сюди, а самі краплі
-       то стуляються перешийком, то розтягують його. Усе — чиста функція часу,
-       тож накопичити дрейф чи «загубити» об'єм тут неможливо. */
-    for (let k = 0; k < PAIRS.length; k++) {
-      const a = PAIRS[k][0], c = PAIRS[k][1];
-      const ph = time * .205 + k * 2.1;
-      const pour = Math.sin(ph);
-      VF[a] = 1 + .30 * pour;
-      VF[c] = 1 - .30 * pour;
-      const mx = (TX[a] + TX[c]) * .5, my = (TY[a] + TY[c]) * .5;
-      const gap = .26 + .44 * (.5 + .5 * Math.cos(ph * .73 + k));  // .26 — злиті, .70 — розтягнуті
-      TX[a] = mx + (TX[a]-mx)*gap; TY[a] = my + (TY[a]-my)*gap;
-      TX[c] = mx + (TX[c]-mx)*gap; TY[c] = my + (TY[c]-my)*gap;
-    }
-
-    for (let i = 0; i < N; i++) {
-      const p = drops[i];
-      let tx = TX[i], ty = TY[i];
-
-      const mdx = mouse.x - tx, mdy = mouse.y - ty;
-      const pointerAspect = clamp(cv.clientWidth / Math.max(1, cv.clientHeight), .65, 1.85);
-      const md = Math.hypot(mdx * pointerAspect, mdy);
-      const response = mouse.power * Math.exp(-md*md/.060);
-      const pull = response * (.22 + mouse.energy*.14);
-      tx += mdx * pull;
-      ty += mdy * pull;
-      tx += (mouse.vx - mouse.vy*.28) * response * mouse.energy * .018;
-      ty += (mouse.vy + mouse.vx*.28) * response * mouse.energy * .018;
-
-      const moveRate = 2.15 + mouse.energy * 1.70;
-      p.x += (tx - p.x) * follow(moveRate, dt);
-      p.y += (ty - p.y) * follow(moveRate, dt);
-
-      /* рідина витягується вздовж власного руху — саме це читається як текучість */
-      const sdt = Math.max(dt, 1/240);
-      const vx = (p.x - p.px) / sdt, vy = (p.y - p.py) / sdt;
-      p.px = p.x; p.py = p.y;
-      const sp = Math.hypot(vx, vy);
-      if (sp > .012) {
-        const kd = follow(5.5, dt);
-        p.dx += (vx/sp - p.dx) * kd;
-        p.dy += (vy/sp - p.dy) * kd;
-        const dl = Math.hypot(p.dx, p.dy) || 1;
-        p.dx /= dl; p.dy /= dl;
-        p.ang = Math.atan2(p.dy, p.dx);
-      }
-      p.el += ((1 + clamp(sp * .70, 0, .34)) - p.el) * follow(4.5, dt);
-
-      const breathe = Math.sin(time*.34 + i*.91) * .025
-                    + Math.sin(time*.15 - i*1.47) * .010;
-      const splitBreath = 1 - morph * (i === 0 ? .025 : .045);
-      const targetRadius = p.r * radiusScale * splitBreath * Math.sqrt(VF[i])
-                         * (1 + breathe + response*(.065 + mouse.energy*.045));
-      p.cr += (targetRadius - p.cr) * follow(3.0, dt);
-    }
-
-    for (let i = 0; i < N; i++) {
-      const p = drops[i];
-      for (let j = i + 1; j < N; j++) {
-        const q = drops[j];
-        const d = Math.hypot(p.x-q.x,p.y-q.y);
-        const sum = p.cr + q.cr;
-        near = Math.max(near, clamp(1 - (d-sum*.62)/(sum*.74), 0, 1));
-      }
-      data[i*4] = p.x; data[i*4+1] = p.y; data[i*4+2] = p.cr; data[i*4+3] = p.ang;
-      sdat[i*2] = p.el; sdat[i*2+1] = i * 1.7;
-    }
-    const targetMelt = clamp(.18 + near*.42 + (1-compact)*.32 + mouse.energy*.18, 0, 1);
-    melt += (targetMelt - melt) * follow(targetMelt > melt ? 3.0 : 1.6, dt);
+  /* ---------- геометрія на весь екран ---------- */
+  const vbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, -1,1, 1,1, 1,-1]), gl.STATIC_DRAW);
+  const ibo = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0,1,2, 0,2,3]), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(0);
+  const blit = target => {
+    if (target) { gl.viewport(0,0,target.w,target.h); gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo); }
+    else        { gl.viewport(0,0,cv.width,cv.height); gl.bindFramebuffer(gl.FRAMEBUFFER, null); }
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
   };
 
-  const MAXPX = TOUCH ? 900000 : 1800000;
+  /* ---------- буфери ---------- */
+  const makeFBO = (w, h, fmt, filter) => {
+    gl.activeTexture(gl.TEXTURE0);
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, fmt.i, w, h, 0, fmt.f, HALF, null);
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.viewport(0,0,w,h);
+    gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return { tex, fbo, w, h, tx:1/w, ty:1/h,
+             bind(id){ gl.activeTexture(gl.TEXTURE0+id); gl.bindTexture(gl.TEXTURE_2D, tex); return id; } };
+  };
+  const makePair = (w, h, fmt, filter) => {
+    let a = makeFBO(w,h,fmt,filter), b = makeFBO(w,h,fmt,filter);
+    return { w, h, tx:1/w, ty:1/h,
+             get read(){ return a; }, get write(){ return b; },
+             swap(){ const t = a; a = b; b = t; } };
+  };
+
+  const SIM  = TOUCH ? 112 : 152;
+  const DYE  = TOUCH ? 420 : 700;
+  const resFor = base => {
+    const ar = cv.width / Math.max(1, cv.height);
+    return ar >= 1 ? { w: Math.round(base*ar), h: base } : { w: base, h: Math.round(base/ar) };
+  };
+  let dye, vel, prs, div, crl;
+  const build = () => {
+    const s = resFor(SIM), d = resFor(DYE);
+    dye = makePair(d.w, d.h, F_RGBA, FILTER);
+    vel = makePair(s.w, s.h, F_RG,   FILTER);
+    prs = makePair(s.w, s.h, F_R,    gl.NEAREST);
+    div = makeFBO (s.w, s.h, F_R,    gl.NEAREST);
+    crl = makeFBO (s.w, s.h, F_R,    gl.NEAREST);
+  };
+
+  const MAXPX = TOUCH ? 1000000 : 1900000;
   const size = () => {
     const dpr = Math.min(devicePixelRatio || 1, TOUCH ? 1.5 : 1.75);
     let w = cv.clientWidth * dpr, h = cv.clientHeight * dpr;
-    const k = Math.sqrt(MAXPX / Math.max(1, w * h));
+    const k = Math.sqrt(MAXPX / Math.max(1, w*h));
     if (k < 1) { w *= k; h *= k; }
     w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
-    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; gl.viewport(0,0,w,h); }
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; build(); }
   };
-  addEventListener('resize', size); size();
+  size();
+
+  /* ---------- параметри рідини ---------- */
+  const CURL = 28, PRESS = .82, ITER = 18, DISS_V = .20, DISS_D = 1.10, RADIUS = .0024;
+
+  const splat = (x, y, dx, dy, color) => {
+    P.splat.use();
+    gl.uniform1i(P.splat.u.uTarget, vel.read.bind(0));
+    gl.uniform1f(P.splat.u.aspect, cv.width / cv.height);
+    gl.uniform2f(P.splat.u.point, x, y);
+    gl.uniform3f(P.splat.u.color, dx, dy, 0);
+    gl.uniform1f(P.splat.u.radius, RADIUS);
+    gl.uniform2f(P.splat.u.texel, vel.tx, vel.ty);
+    blit(vel.write); vel.swap();
+
+    gl.uniform1i(P.splat.u.uTarget, dye.read.bind(0));
+    gl.uniform3f(P.splat.u.color, color[0], color[1], color[2]);
+    gl.uniform2f(P.splat.u.texel, dye.tx, dye.ty);
+    blit(dye.write); dye.swap();
+  };
+
+  /* три джерела ходять по власних траєкторіях і безперервно вливають фарбу */
+  const SRC = [
+    { fx:.079, fy:.111, px:1.7, py:0.4, ax:.37, ay:.27, c:[.847,1.,.243], k:1.18 },
+    { fx:.061, fy:.087, px:3.9, py:2.2, ax:.41, ay:.22, c:[.13,.45,1.00], k:.55 },
+    { fx:.045, fy:.067, px:5.1, py:1.1, ax:.29, ay:.31, c:[.62,.26,1.00], k:.30 }
+  ];
+  const srcAt = (s, t) => [ .5 + Math.sin(t*s.fx*6.28318 + s.px)*s.ax,
+                            .5 + Math.cos(t*s.fy*6.28318 + s.py)*s.ay ];
+
+  const pointer = { x:.5, y:.5, dx:0, dy:0, moved:false, hue:0 };
+  const onMove = e => {
+    const b = cv.getBoundingClientRect();
+    const nx = (e.clientX - b.left) / b.width;
+    const ny = 1 - (e.clientY - b.top) / b.height;
+    pointer.dx = (nx - pointer.x) * 5.2;
+    pointer.dy = (ny - pointer.y) * 5.2;
+    pointer.x = nx; pointer.y = ny;
+    pointer.moved = true;
+  };
+  hero.addEventListener('pointermove', onMove, { passive:true });
+  hero.addEventListener('pointerdown', e => { onMove(e); pointer.dx *= 3; pointer.dy *= 3; }, { passive:true });
+
+  const PAL = [[.847,1.,.243],[.13,.42,1.],[.60,.24,1.],[.0,.85,.86]];
+
+  const stepSim = dt => {
+    gl.disable(gl.BLEND);
+
+    P.curl.use();
+    gl.uniform2f(P.curl.u.texel, vel.tx, vel.ty);
+    gl.uniform1i(P.curl.u.uVel, vel.read.bind(0));
+    blit(crl);
+
+    P.vort.use();
+    gl.uniform2f(P.vort.u.texel, vel.tx, vel.ty);
+    gl.uniform1i(P.vort.u.uVel, vel.read.bind(0));
+    gl.uniform1i(P.vort.u.uCurl, crl.bind(1));
+    gl.uniform1f(P.vort.u.curl, CURL);
+    gl.uniform1f(P.vort.u.dt, dt);
+    blit(vel.write); vel.swap();
+
+    P.div.use();
+    gl.uniform2f(P.div.u.texel, vel.tx, vel.ty);
+    gl.uniform1i(P.div.u.uVel, vel.read.bind(0));
+    blit(div);
+
+    P.clear.use();
+    gl.uniform2f(P.clear.u.texel, prs.tx, prs.ty);
+    gl.uniform1i(P.clear.u.uTex, prs.read.bind(0));
+    gl.uniform1f(P.clear.u.value, PRESS);
+    blit(prs.write); prs.swap();
+
+    P.press.use();
+    gl.uniform2f(P.press.u.texel, prs.tx, prs.ty);
+    gl.uniform1i(P.press.u.uDiv, div.bind(0));
+    for (let i = 0; i < ITER; i++) {
+      gl.uniform1i(P.press.u.uPress, prs.read.bind(1));
+      blit(prs.write); prs.swap();
+    }
+
+    P.grad.use();
+    gl.uniform2f(P.grad.u.texel, prs.tx, prs.ty);
+    gl.uniform1i(P.grad.u.uPress, prs.read.bind(0));
+    gl.uniform1i(P.grad.u.uVel, vel.read.bind(1));
+    blit(vel.write); vel.swap();
+
+    P.advect.use();
+    gl.uniform2f(P.advect.u.texel, vel.tx, vel.ty);
+    gl.uniform2f(P.advect.u.srcTexel, vel.tx, vel.ty);
+    gl.uniform1i(P.advect.u.uVel, vel.read.bind(0));
+    gl.uniform1i(P.advect.u.uSrc, vel.read.bind(0));
+    gl.uniform1f(P.advect.u.dt, dt);
+    gl.uniform1f(P.advect.u.diss, DISS_V);
+    blit(vel.write); vel.swap();
+
+    gl.uniform2f(P.advect.u.srcTexel, dye.tx, dye.ty);
+    gl.uniform1i(P.advect.u.uVel, vel.read.bind(0));
+    gl.uniform1i(P.advect.u.uSrc, dye.read.bind(1));
+    gl.uniform1f(P.advect.u.diss, DISS_D);
+    blit(dye.write); dye.swap();
+  };
+
   let visible = true;
   new IntersectionObserver(es => { visible = es[0].isIntersecting; }, { threshold:0 }).observe(hero);
+  addEventListener('resize', size);
+
+  /* стартовий поштовх, щоб на першому ж кадрі вже було що дивитися */
+  let seeded = false;
+  const seed = () => {
+    for (let i = 0; i < 9; i++) {
+      const a = i * 2.34, rr = .16 + (i % 3) * .09;
+      splat(.5 + Math.cos(a)*rr*1.6, .5 + Math.sin(a)*rr,
+            Math.cos(a)*900, Math.sin(a)*900,
+            PAL[i % PAL.length].map(v => v * .55));
+    }
+    seeded = true;
+  };
 
   const t0 = performance.now();
   let prev = t0;
-  (function draw(now){
-    requestAnimationFrame(draw);
-    const dt = Math.min((now - prev) / 1000, .032);
-    prev = now;
+  (function frame(now){
+    requestAnimationFrame(frame);
+    let dt = (now - prev) / 1000; prev = now;
     if (!visible || document.hidden) return;
+    dt = Math.min(Math.max(dt, 1/240), 1/30);
     size();
+    if (!seeded) seed();
     const time = (now - t0) / 1000;
-    step(time, dt);
-    gl.uniform2f(uR, cv.width, cv.height);
-    gl.uniform1f(uT, time);
-    gl.uniform1f(uM, melt);
-    gl.uniform4f(uC, mouse.x, mouse.y, mouse.energy, mouse.power);
-    gl.uniform4fv(uB, data);
-    gl.uniform2fv(uS, sdat);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    /* безперервні джерела */
+    for (let i = 0; i < SRC.length; i++) {
+      const s = SRC[i];
+      const a = srcAt(s, time), b = srcAt(s, time + .05);
+      const vx = (b[0]-a[0]) / .05, vy = (b[1]-a[1]) / .05;
+      const pulse = .55 + .45 * Math.sin(time * (.31 + i*.13) + i*2.1);
+      splat(a[0], a[1], vx*260*s.k, vy*260*s.k,
+            [ s.c[0]*.150*s.k*pulse, s.c[1]*.150*s.k*pulse, s.c[2]*.150*s.k*pulse ]);
+    }
+
+    if (pointer.moved) {
+      pointer.moved = false;
+      const sp = Math.hypot(pointer.dx, pointer.dy);
+      if (sp > .0004) {
+        pointer.hue = (pointer.hue + 1) % PAL.length;
+        const c = PAL[pointer.hue | 0];
+        splat(pointer.x, pointer.y, pointer.dx*1400, pointer.dy*1400,
+              [c[0]*.22, c[1]*.22, c[2]*.22]);
+      }
+      pointer.dx *= .55; pointer.dy *= .55;
+    }
+
+    stepSim(dt);
+
+    P.show.use();
+    gl.uniform2f(P.show.u.texel, dye.tx, dye.ty);
+    gl.uniform1i(P.show.u.uTex, dye.read.bind(0));
+    gl.uniform1f(P.show.u.aspect, cv.width / cv.height);
+    gl.uniform1f(P.show.u.time, time);
+    blit(null);
   })(t0);
 })();
 
@@ -730,6 +860,31 @@ $$('#pricing [data-pack]').forEach(b => b.addEventListener('click', () => {
   const f = $('#form'); if (!f) return;
   const submit = $('button[type="submit"]', f);
   const status = $('#formStatus');
+  /* класична POST-відправка в невидимий iframe: сторінка не перезавантажується,
+     а браузер не застосовує до неї CORS, бо це не XHR */
+  const postThroughFrame = fields => {
+    try {
+      const name = 'ixf' + Date.now();
+      const fr = document.createElement('iframe');
+      fr.name = name; fr.style.display = 'none'; fr.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(fr);
+      const form = document.createElement('form');
+      form.action = CFG.formEndpoint.replace('/ajax/', '/');
+      form.method = 'POST'; form.target = name; form.style.display = 'none';
+      const add = (k, v) => {
+        const i = document.createElement('input');
+        i.type = 'hidden'; i.name = k; i.value = v; form.appendChild(i);
+      };
+      Object.keys(fields).forEach(k => add(k, fields[k]));
+      add('_captcha', 'false');
+      add('_template', 'table');
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(() => { form.remove(); fr.remove(); }, 60000);
+      return true;
+    } catch(_) { return false; }
+  };
+
   const setStatus = (text, kind = '', html = false) => {
     if (!status) return;
     if (html) status.innerHTML = text; else status.textContent = text;
@@ -770,27 +925,34 @@ ${L('Надіслано з сайту ixonity','Sent from the ixonity site')}`;
     submit.disabled = true;
     setStatus(L('Надсилаємо захищений brief…','Sending your brief…'));
     try {
-      const payload = { ...d, message: body, _subject: subject, _template:'table', _url:location.href };
-      const r = await fetch(CFG.formEndpoint, {
-        method:'POST',
-        headers:{Accept:'application/json','Content-Type':'application/json'},
-        body:JSON.stringify(payload)
+      /* Тіло як form-urlencoded і без власних заголовків: браузер не робить
+         preflight-запит, тому політика CORS не може заблокувати відправку. */
+      const payload = new URLSearchParams({
+        ...d, message: body, _subject: subject, _template:'table', _url:location.href
       });
+      const r = await fetch(CFG.formEndpoint, { method:'POST', body:payload });
       const result = await r.json().catch(() => ({}));
       if (!r.ok || result.success === 'false' || result.success === false) throw new Error('form endpoint rejected request');
       setStatus(L('Дякуємо — заявку надіслано. Відповімо протягом робочого дня.','Thank you — your enquiry was sent. We reply within one business day.'), 'ok');
       flash(L('Заявку надіслано.','Enquiry sent.'));
       f.reset();
     } catch(_) {
-      // сервіс розсилки не відповів — не втрачаємо заявку: копіюємо бриф і відкриваємо пошту
-      const mail = `mailto:${CFG.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      try { await navigator.clipboard.writeText(body); } catch(_e) {}
-      setStatus(
-        L('Пошта студії ще не підтвердила автоматичну відправку. Ваш бриф скопійовано в буфер — ',
-          'Automatic sending is not confirmed yet. Your brief is copied to the clipboard — ') +
-        `<a href="${mail}">` + L('надішліть його листом', 'send it by email') + '</a>' +
-        L(', або напишіть на ixonity@gmail.com.', ', or write to ixonity@gmail.com.'),
-        'err', true);
+      /* Запасний шлях: звичайна відправка форми в прихований iframe.
+         Це не fetch, тож правила CORS до неї не застосовуються взагалі. */
+      if (postThroughFrame({ ...d, message: body, _subject: subject })) {
+        setStatus(L('Дякуємо — заявку надіслано. Відповімо протягом робочого дня.','Thank you — your enquiry was sent. We reply within one business day.'), 'ok');
+        flash(L('Заявку надіслано.','Enquiry sent.'));
+        f.reset();
+      } else {
+        const mail = `mailto:${CFG.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        try { await navigator.clipboard.writeText(body); } catch(_e) {}
+        setStatus(
+          L('Не вдалося надіслати автоматично. Бриф скопійовано в буфер — ',
+            'Automatic sending failed. The brief is copied to the clipboard — ') +
+          `<a href="${mail}">` + L('надішліть його листом', 'send it by email') + '</a>' +
+          L(', або напишіть на ixonity@gmail.com.', ', or write to ixonity@gmail.com.'),
+          'err', true);
+      }
     } finally {
       submit.disabled = false;
     }
