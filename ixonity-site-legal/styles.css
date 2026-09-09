@@ -183,7 +183,12 @@ p{margin:0}
 .eyebrow{display:flex;align-items:center;gap:10px;color:var(--faint);margin-bottom:16px}
 .eyebrow::before{content:"";width:24px;height:1px;background:currentColor;opacity:.6}
 .h2{font-size:clamp(2.1rem,7.4vw,5.6rem)}
-.lead{max-width:44ch;color:var(--dim);font-size:clamp(.94rem,1.15vw,1.06rem)}
+.lead{max-width:38ch;color:var(--fg);font-family:var(--f-head);font-weight:500;
+  font-size:clamp(1.05rem,1.5vw,1.4rem);line-height:1.35;letter-spacing:-.02em;
+  padding-left:18px;border-left:2px solid var(--acid);text-wrap:balance}
+/* підказка під питанням калькулятора */
+.cq__hint{font-family:var(--f-body);font-size:.82rem;line-height:1.45;color:var(--faint);
+  text-transform:none;letter-spacing:0;margin:-6px 0 12px}
 
 /* ---------- BENTO SERVICES ---------- */
 .bento{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;grid-auto-rows:minmax(88px,auto)}

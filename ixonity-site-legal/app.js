@@ -23,7 +23,13 @@ const lerp = (a,b,t) => a + (b-a)*t;
 const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
 const ROUTE_LANG = document.body?.dataset.localeRoute;
 const savedLang = localStorage.getItem('ix_lang');
-const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone === 'Europe/Kyiv';
+const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+const localTimezone = ['Europe/Kyiv','Europe/Kiev','Europe/Uzhgorod','Europe/Zaporozhye','Europe/Simferopol'].includes(TZ);
+/* ручне перемикання ринку для перевірки: ?market=ua або ?market=global, ?market=auto скидає */
+const urlMarket = new URLSearchParams(location.search).get('market');
+if (urlMarket === 'auto') localStorage.removeItem('ix_market');
+else if (urlMarket === 'ua' || urlMarket === 'global') localStorage.setItem('ix_market', urlMarket);
+const pinnedMarket = localStorage.getItem('ix_market');
 const ukrainianBrowser = (navigator.languages || [navigator.language]).some(lang => /^uk\b/i.test(lang || ''));
 let LANG = ROUTE_LANG || (savedLang === 'uk' || savedLang === 'en' ? savedLang : (localTimezone || ukrainianBrowser ? 'uk' : 'en'));
 if (!ROUTE_LANG && location.protocol !== 'file:') {
@@ -31,7 +37,7 @@ if (!ROUTE_LANG && location.protocol !== 'file:') {
   return;
 }
 const L = (uk, en) => LANG === 'uk' ? uk : en;
-let MARKET = localTimezone ? 'ua' : 'global';
+let MARKET = pinnedMarket || ((localTimezone || ukrainianBrowser) ? 'ua' : 'global');
 
 /* --- валюты: базовая цена везде в USD, показываем в выбранной --- */
 const CUR = {
@@ -85,8 +91,9 @@ function setMarket(market){
   renderPrices();
 }
 async function resolveMarket(){
+  if (pinnedMarket) return;                       // вибір вручну важливіший за геовизначення
   if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-    setMarket(localTimezone ? 'ua' : 'global');
+    setMarket((localTimezone || ukrainianBrowser) ? 'ua' : 'global');
     return;
   }
   try {
@@ -747,10 +754,10 @@ const EN = {
   h1a:'Digital', h1b:'products', h1c:'built to matter',
   hsub:'Strategy, UX/UI, web, mobile and advanced interactive development — from the first idea to launch and continuous product growth.',
   cta1:'Start a project', cta2:'View our work', tk2:'Working <em>worldwide</em>',
-  tk3:'Languages <em>UA / EN</em>', tk4:'Contract · invoice <em>· NDA</em>', tk5:'You own <em>the source code</em>',
+  tk4:'Contract · invoice <em>· NDA</em>', tk5:'You own <em>the source code</em>',
   from:'from', range:'typical', permo:'/mo',
-  eb1:'01 / Services', s_title:'What we build',
-  s_lead:'Full cycle: research → design → code → launch → support. You do not assemble a team of freelancers or referee between contractors.',
+  s_title:'What we build',
+  s_lead:'Research, design, code, launch and support in one pair of hands. No chain of contractors.',
   sv1t:'Premium websites',
   sv1d:'Strategy, art direction, UX/UI, development, CMS, motion, SEO and launch — one accountable team.',
   sv1time:'2–12 weeks',
@@ -762,27 +769,23 @@ const EN = {
   sv5t:'Product design', sv5d:'Research, user flows, prototypes, UI and a scalable design system.', sv5time:'3–8 weeks',
   sv6t:'WebGL & interactive', sv6d:'3D, shaders, configurators, motion and interactive brand experiences.', sv6time:'5–12 weeks',
   sv7t:'Product development', sv7d:'Support, analytics and structured product growth after launch.', sv7time:'long-term',
-  eb2:'02 / Process', p_title:'How we work',
+  p_title:'How we work',
   p1t:'The call', p1d:'30–40 minutes. We unpack the task, the business goal, the budget. No jargon. Free, no strings attached.', p1x:'Day 0 · free',
   p2t:'Estimate & plan', p2d:'You get a document: what is included, what is not, the cost, the timeline. A fixed price, not a "roughly".', p2x:'1–2 days',
   p3t:'Design', p3d:'Prototype → Figma mockups. You see the product before a single line of code is written. Two rounds of revisions included.', p3x:'5–14 days',
   p4t:'Development', p4d:'We work in sprints. Once a week: a demo and a live link. You always see what you are paying for.', p4x:'2–10 weeks',
   p5t:'Launch', p5d:'Testing, migration to your hosting, store submission, analytics. We hand over every access key and the source code.', p5x:'2–5 days',
   p6t:'Support', p6d:'Six months of free bug fixing. After that — a monthly plan or hourly work, whichever suits you.', p6x:'6-month warranty',
-  eb3:'03 / Work', w_title:'Already shipped',
-  w_lead:'Real products in production — not Dribbble concepts. Two apps published on the App Store, plus our own R&D engine.',
+  w_title:'Already shipped',
+  w_lead:'Products in production, not concepts. Two apps on the App Store and our own R&amp;D engine.',
   c1d:'A full furniture store inside an app: filtered catalogue, cart, orders, Monobank acquiring, behaviour analytics, a manager dashboard. From mockup to App Store release — built from the first line.',
   c2d:'A QR generator at commercial-tool level: custom eyes and frames, branding, dynamic codes, scan statistics, print-quality export.',
   c3d:'Our own planetary 3D engine on WebGPU: volumetric clouds with Rayleigh/Mie scattering, climate simulation over a million particles, seamless LOD. We build it to stay sharp on the hardest graphics.',
   c_open:'View case study', c_follow:'View the R&D case',
-  reel_k:'Ixonity / Motion reel 01',
-  reel_title:'Research that moves commercial design forward',
-  reel_text:'The showreel loads only when it approaches the viewport, keeping the first screen fast.',
-  reel_play:'Play', 
   r1:'Fixed price', r2:'Signed contract', r3:'You own the code', r4:'6-month warranty',
   r5:'Weekly demos', r6:'No 100% upfront',
-  eb4:'04 / Investment', pr_title:'Clear ranges. No fog.',
-  pr_lead:'These are ranges for custom full-cycle delivery, not template packages. After discovery, scope, timeline and price are fixed in the proposal.',
+  pr_title:'Clear ranges. No fog.',
+  pr_lead:'Ranges for custom work. The exact figure is fixed after discovery.',
   pr_legal:'This is an estimated investment, not a legally binding offer. Ukrainian clients are invoiced in hryvnia; international projects in the contract currency. Final pricing follows a scoped discovery.',
   market_ua:'Ukraine', market_ua_sub:'launch scope · billed in UAH',
   market_global:'Global', market_global_sub:'custom scope · USD / EUR',
@@ -807,8 +810,13 @@ const EN = {
   pk4a:'Discovery and product scope', pk4b:'UX/UI and interactive prototype', pk4c:'Web app or mobile product',
   pk4d:'Backend, admin and integrations', pk4e:'QA, release and monitoring', pk4f:'Plan for the next iterations',
   pk_btn:'Discuss',
-  eb5:'05 / Project estimator', cl_title:'Estimate the scope',
-  cl_lead:'Not a simple sum of options: product baseline is shaped by design, motion, features and pace. The result is a useful range for the first conversation.',
+  cl_title:'Estimate the scope',
+  cl_lead:'The base product is multiplied by design complexity, motion, features and pace.',
+  h1:'Landing is a one-page site built around a single goal. The other formats are multi-page products.',
+  h2:'How distinctive the look is — from a tidy template to a fully original design.',
+  h3:'Animation and response to actions: from static to 3D graphics in the browser.',
+  h4:'What the site can do beyond showing information. Each item adds work.',
+  h5:'Faster than the normal pace means overtime, so it costs more.',
   q1:'1. What are we building?', q2:'2. Design level', q_motion:'3. Motion & interaction', q_features:'4. Features', q3:'5. Pace',
   o_land:'Landing', o_corp:'Premium website', o_shop:'E-commerce', o_app:'Mobile App', o_saas:'Web App / SaaS', o_ux:'UI/UX', o_webgl:'Interactive / WebGL',
   d1:'Essential', d2:'Premium', d3:'Custom', d4:'Experimental',
@@ -819,7 +827,7 @@ const EN = {
   cl_est:'estimated investment', cl_pack:'Recommended format', cl_time:'Timeline', cl_start:'First payment (40%)',
   cl_sup:'Product growth after launch', cl_sup_v:'from $500/mo', cl_btn:'Get a detailed proposal',
   cl_note:'This estimate is a typical range, not an offer. After discovery we define the scope, exclusions, stages, timeline and final price.',
-  eb6:'06 / Questions', f_title:'What people ask',
+  f_title:'What people ask',
   f1q:'Honestly — how much does a website cost?',
   f1a:'A landing typically ranges from <span data-usd-range="600,1100" data-market-faq-range></span>. Complex websites, e-commerce and products scale with UX, integrations and motion. After discovery you receive a proposal with a fixed scope and price.',
   f2q:'Will there be a contract and paperwork?',
@@ -836,8 +844,8 @@ const EN = {
   f7a:'All over Ukraine. Everything runs online: calls, Figma, demo links, digitally signed documents. An in-person meeting in Odesa is available if you want one.',
   f8q:'What if I am not in Ukraine?',
   f8a:'We work with clients in the EU, the UK and the US. Contract and correspondence in English, invoice in the contract currency (USD or EUR), payment by bank transfer, Wise or Payoneer. Odesa sits at UTC+2/+3, so the working day overlaps almost fully with Europe and leaves a solid afternoon window with the US East Coast.',
-  eb7:'07 / Start a project', ct_title:'Let us start',
-  ct_lead:'A short brief lets us discuss the solution, timeline and realistic budget immediately. We usually reply within one business day.',
+  ct_title:'Let us start',
+  ct_lead:'Describe the task in two sentences. We reply within one business day.',
   fn:'Name', fcompany:'Company', fp:'Telegram / WhatsApp', fe:'Email', fcountry:'Country', fwebsite:'Current website', ft:'Project type',
   ft1:'Landing', ft2:'Premium website', ft3:'E-commerce', ft4:'Mobile product',
   ft5:'Web App / SaaS', ft6:'Interactive / WebGL', ft7:'Not sure yet',
