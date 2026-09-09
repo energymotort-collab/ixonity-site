@@ -383,8 +383,23 @@ if (!TOUCH && !RM) (() => {
 'void main(){gl_FragColor=value*texture2D(uTex,vUv);}'].join('\n');
 
   /* показ: дуже темне синє тло, фарба світиться поверх, псевдо-об\'єм по градієнту */
+  const FS_BRIGHT = [HEAD,
+'uniform sampler2D uTex;uniform float thr,soft;',
+'void main(){',
+' vec3 c=texture2D(uTex,vUv).rgb;',
+' float b=max(c.r,max(c.g,c.b));',
+' gl_FragColor=vec4(c*clamp((b-thr)/max(soft,.0001),0.,1.),1.);}'].join('\n');
+
+  const FS_BLUR = [HEAD,
+'uniform sampler2D uTex;uniform vec2 dir;',
+'void main(){',
+' vec3 s=texture2D(uTex,vUv).rgb*.2270;',
+' s+=(texture2D(uTex,vUv+dir*1.3846).rgb+texture2D(uTex,vUv-dir*1.3846).rgb)*.3162;',
+' s+=(texture2D(uTex,vUv+dir*3.2308).rgb+texture2D(uTex,vUv-dir*3.2308).rgb)*.0703;',
+' gl_FragColor=vec4(s,1.);}'].join('\n');
+
   const FS_SHOW = [HEAD,
-'uniform sampler2D uTex;uniform vec2 texel;uniform float aspect,time;',
+'uniform sampler2D uTex,uGlow;uniform vec2 texel;uniform float aspect,time;',
 'vec3 night(vec2 q){',
 ' vec2 d=(q-.5)*vec2(aspect,1.);',
 ' vec3 c=vec3(.0055,.0100,.0330);',
@@ -394,26 +409,25 @@ if (!TOUCH && !RM) (() => {
 ' c*=1.-.34*smoothstep(.26,1.06,length(d));',
 ' return c;}',
 'void main(){',
-' vec3 c=texture2D(uTex,vUv).rgb;',
+' vec3 c0=texture2D(uTex,vUv).rgb;',
 ' float l=length(texture2D(uTex,vL).rgb),rr=length(texture2D(uTex,vR).rgb);',
 ' float tt=length(texture2D(uTex,vT).rgb),bb=length(texture2D(uTex,vB).rgb);',
 ' vec3 n=normalize(vec3(rr-l,tt-bb,length(texel)*2.2));',
-' float dif=clamp(dot(n,normalize(vec3(-.35,.55,.76)))+.74,.62,1.22);',
+/* дисперсія: канали трохи розведені по нормалі, на краях фарби грає призма */
+' vec2 off=n.xy*texel*3.2;',
+' vec3 c=vec3(texture2D(uTex,vUv+off).r,c0.g,texture2D(uTex,vUv-off).b);',
+' float dif=clamp(dot(n,normalize(vec3(-.35,.55,.76)))+.74,.62,1.24);',
 ' float spe=pow(max(dot(reflect(-normalize(vec3(-.35,.55,.76)),n),vec3(0.,0.,1.)),0.),34.);',
-' c*=dif*2.10;',
+' c*=dif*2.45;',
 /* піднімаємо насиченість, щоб фарба була соковита, а не припилена */
 ' float lum=dot(c,vec3(.299,.587,.114));',
-' c=max(mix(vec3(lum),c,1.55),0.);',
-/* дешеве сяйво: вісім відліків по колу, у квадраті — світиться лише яскраве */
-' vec3 blm=vec3(0.);',
-' for(int i=0;i<8;i++){',
-'  float ang=float(i)*.7854; vec2 o=vec2(cos(ang),sin(ang));',
-'  blm+=texture2D(uTex,vUv+o*texel*7.).rgb;}',
-' blm*=.125*2.10;',
+' c=max(mix(vec3(lum),c,1.62),0.);',
+/* сяйво рахується в окремих буферах: широке, м'яке, як у кіно */
+' vec3 glow=texture2D(uGlow,vUv).rgb;',
 ' float a=clamp(length(c)*1.5,0.,1.);',
 ' vec3 col=night(vUv)*(1.-a*.55)+c;',
-' col+=blm*blm*1.45;',
-' col+=vec3(1.)*spe*a*.55;',
+' col+=glow*2.35;',
+' col+=vec3(1.)*spe*a*.60;',
 ' col=col/(1.+col*.22);',
 ' col=pow(max(col,0.),vec3(.90));',
 ' float g=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.545)*.012;',
@@ -447,7 +461,8 @@ if (!TOUCH && !RM) (() => {
   const P = {
     splat:  program(FS_SPLAT),  advect: program(FS_ADVECT), div:  program(FS_DIV),
     curl:   program(FS_CURL),   vort:   program(FS_VORT),   press:program(FS_PRESS),
-    grad:   program(FS_GRAD),   clear:  program(FS_CLEAR),  show: program(FS_SHOW)
+    grad:   program(FS_GRAD),   clear:  program(FS_CLEAR),  show: program(FS_SHOW),
+    bright: program(FS_BRIGHT), blur:   program(FS_BLUR)
   };
   if (broken) { cv.style.display = 'none'; return; }
   if (fall) fall.style.display = 'none';
@@ -499,9 +514,12 @@ if (!TOUCH && !RM) (() => {
     const ar = cv.width / Math.max(1, cv.height);
     return ar >= 1 ? { w: Math.round(base*ar), h: base } : { w: base, h: Math.round(base/ar) };
   };
-  let dye, vel, prs, div, crl;
+  let dye, vel, prs, div, crl, glowA, glowB;
   const build = () => {
     const s = resFor(SIM), d = resFor(DYE);
+    const g = { w: Math.max(8, d.w >> 2), h: Math.max(8, d.h >> 2) };
+    glowA = makeFBO(g.w, g.h, F_RGBA, FILTER);
+    glowB = makeFBO(g.w, g.h, F_RGBA, FILTER);
     dye = makePair(d.w, d.h, F_RGBA, FILTER);
     vel = makePair(s.w, s.h, F_RG,   FILTER);
     prs = makePair(s.w, s.h, F_R,    gl.NEAREST);
@@ -521,8 +539,8 @@ if (!TOUCH && !RM) (() => {
   size();
 
   /* ---------- параметри рідини ---------- */
-  const CURL = 21, PRESS = .82, ITER = 18, DISS_V = .18, DISS_D = 1.85, RADIUS = .0026;
-  const SPEED = .50;                                 // загальний темп течії
+  const CURL = 21, PRESS = .82, ITER = 18, DISS_V = .18, DISS_D = 2.70, RADIUS = .0026;
+  const SPEED = .30;                                 // загальний темп течії
 
   const splat = (x, y, dx, dy, color) => {
     P.splat.use();
@@ -640,7 +658,7 @@ if (!TOUCH && !RM) (() => {
   };
 
   const t0 = performance.now();
-  let prev = t0;
+  let prev = t0, flow = 0;                           // flow — власний час рідини, повільніший за час сторінки
   (function frame(now){
     requestAnimationFrame(frame);
     let dt = (now - prev) / 1000; prev = now;
@@ -649,15 +667,16 @@ if (!TOUCH && !RM) (() => {
     size();
     if (!seeded) seed();
     const time = (now - t0) / 1000;
+    flow += dt * SPEED;
 
     /* безперервні джерела */
     for (let i = 0; i < SRC.length; i++) {
       const s = SRC[i];
-      const a = srcAt(s, time), b = srcAt(s, time + .05);
+      const a = srcAt(s, flow), b = srcAt(s, flow + .05);
       const vx = (b[0]-a[0]) / .05, vy = (b[1]-a[1]) / .05;
-      const pulse = .55 + .45 * Math.sin(time * (.31 + i*.13) + i*2.1);
+      const pulse = (.55 + .45 * Math.sin(flow * (.31 + i*.13) + i*2.1)) * dt * 60;
       splat(a[0], a[1], vx*135*s.k, vy*135*s.k,
-            [ s.c[0]*.105*s.k*pulse, s.c[1]*.105*s.k*pulse, s.c[2]*.105*s.k*pulse ]);
+            [ s.c[0]*.088*s.k*pulse, s.c[1]*.088*s.k*pulse, s.c[2]*.088*s.k*pulse ]);
     }
 
     if (pointer.moved) {
@@ -674,9 +693,30 @@ if (!TOUCH && !RM) (() => {
 
     stepSim(dt * SPEED);
 
+    /* сяйво: відбираємо яскраве, розмиваємо двічі з різним кроком */
+    P.bright.use();
+    gl.uniform2f(P.bright.u.texel, glowA.tx, glowA.ty);
+    gl.uniform1i(P.bright.u.uTex, dye.read.bind(0));
+    gl.uniform1f(P.bright.u.thr, .14);
+    gl.uniform1f(P.bright.u.soft, .34);
+    blit(glowA);
+
+    P.blur.use();
+    gl.uniform2f(P.blur.u.texel, glowA.tx, glowA.ty);
+    const blur = (src, dst, dx, dy) => {
+      gl.uniform1i(P.blur.u.uTex, src.bind(0));
+      gl.uniform2f(P.blur.u.dir, dx, dy);
+      blit(dst);
+    };
+    blur(glowA, glowB, glowA.tx, 0);
+    blur(glowB, glowA, 0, glowA.ty);
+    blur(glowA, glowB, glowA.tx * 2.6, 0);
+    blur(glowB, glowA, 0, glowA.ty * 2.6);
+
     P.show.use();
     gl.uniform2f(P.show.u.texel, dye.tx, dye.ty);
     gl.uniform1i(P.show.u.uTex, dye.read.bind(0));
+    gl.uniform1i(P.show.u.uGlow, glowA.bind(1));
     gl.uniform1f(P.show.u.aspect, cv.width / cv.height);
     gl.uniform1f(P.show.u.time, time);
     blit(null);
@@ -886,7 +926,6 @@ $$('#pricing [data-pack]').forEach(b => b.addEventListener('click', () => {
       };
       Object.keys(fields).forEach(k => add(k, fields[k]));
       add('_captcha', 'false');
-      add('_template', 'table');
       document.body.appendChild(form);
       form.submit();
       setTimeout(() => { form.remove(); fr.remove(); }, 60000);
@@ -927,24 +966,38 @@ ${d.msg}
 —
 ${L('Надіслано з сайту ixonity','Sent from the ixonity site')}`;
     /* Тема одразу каже, що за заявка: тип, бюджет, ім'я */
-    const subject = L('Заявка: ', 'Enquiry: ') +
+    const subject = L('🟢 Заявка: ', '🟢 Enquiry: ') +
       [d.ptype, d.budget, d.name].filter(Boolean).join(' · ');
 
-    /* Поля з людськими назвами: FormSubmit друкує їх як таблицю,
-       тому лист читається без розшифровок */
+    /* Поля з людськими назвами і в порядку читання: спершу суть замовлення,
+       потім контакти, потім технічний контекст. FormSubmit друкує це карткою. */
+    const utm = new URLSearchParams(location.search);
+    const utmTags = ['utm_source','utm_medium','utm_campaign','utm_content']
+      .map(k => utm.get(k) ? k.replace('utm_','') + ': ' + utm.get(k) : null)
+      .filter(Boolean).join(', ');
+    const stamp = new Date().toLocaleString(LANG === 'en' ? 'en-GB' : 'uk-UA',
+      { dateStyle:'medium', timeStyle:'short' });
+    const source = document.referrer
+      ? document.referrer.replace(/^https?:\/\//,'').split('/')[0]
+      : L('прямий захід','direct');
+
     const fields = {};
-    fields[L("Ім'я", 'Name')]                       = d.name || '—';
-    fields[L('Компанія', 'Company')]                = d.company || '—';
-    fields['Email']                                 = d.email || '—';
-    fields[L('Телефон / Telegram', 'Phone / Telegram')] = d.phone || '—';
-    fields[L('Країна', 'Country')]                  = d.country || '—';
-    fields[L('Поточний сайт', 'Current website')]   = d.website || '—';
-    fields[L('Тип проєкту', 'Project type')]        = d.ptype || '—';
-    fields[L('Бюджет', 'Budget')]                   = d.budget || '—';
-    fields[L('Бажаний старт', 'Preferred start')]   = d.deadline || '—';
-    fields[L('Задача', 'Brief')]                    = d.msg || '—';
-    fields[L('Сторінка', 'Page')]                   = location.href;
-    fields[L('Мова сайту', 'Site language')]        = (LANG || 'ua').toUpperCase();
+    fields[L('🎯 Тип проєкту', '🎯 Project type')]      = d.ptype || '—';
+    fields[L('💰 Бюджет', '💰 Budget')]                 = d.budget || '—';
+    fields[L('🗓 Бажаний старт', '🗓 Preferred start')]  = d.deadline || '—';
+    fields[L('📝 Задача', '📝 Brief')]                  = d.msg || '—';
+    fields[L("👤 Ім'я", '👤 Name')]                     = d.name || '—';
+    fields['✉️ Email']                                  = d.email || '—';
+    fields[L('📞 Телефон / Telegram', '📞 Phone / Telegram')] = d.phone || '—';
+    fields[L('🏢 Компанія', '🏢 Company')]              = d.company || '—';
+    fields[L('🌍 Країна', '🌍 Country')]                = d.country || '—';
+    fields[L('🔗 Поточний сайт', '🔗 Current website')] = d.website || '—';
+    fields[L('🕒 Час заявки', '🕒 Received')]           = stamp;
+    fields[L('↪️ Джерело', '↪️ Came from')]              = utmTags ? source + ' · ' + utmTags : source;
+    fields[L('💻 Пристрій', '💻 Device')] =
+      (TOUCH ? L('мобільний','mobile') : L('десктоп','desktop')) +
+      ' · ' + screen.width + '×' + screen.height + ' · ' + (LANG || 'ua').toUpperCase();
+    fields[L('📄 Сторінка', '📄 Page')]                 = location.href;
     if (!CFG.formEndpoint) {
       location.href = `mailto:${CFG.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       return;
@@ -957,7 +1010,7 @@ ${L('Надіслано з сайту ixonity','Sent from the ixonity site')}`;
       const payload = new URLSearchParams({
         ...fields,
         _subject: subject,
-        _template: 'table',
+        _template: 'box',
         _captcha: 'false',
         _replyto: d.email || CFG.email
       });
@@ -970,7 +1023,7 @@ ${L('Надіслано з сайту ixonity','Sent from the ixonity site')}`;
     } catch(_) {
       /* Запасний шлях: звичайна відправка форми в прихований iframe.
          Це не fetch, тож правила CORS до неї не застосовуються взагалі. */
-      if (postThroughFrame({ ...fields, _subject: subject, _replyto: d.email || CFG.email })) {
+      if (postThroughFrame({ ...fields, _subject: subject, _replyto: d.email || CFG.email, _template:'box' })) {
         setStatus(L('Дякуємо — заявку надіслано. Відповімо протягом робочого дня.','Thank you — your enquiry was sent. We reply within one business day.'), 'ok');
         flash(L('Заявку надіслано.','Enquiry sent.'));
         f.reset();
