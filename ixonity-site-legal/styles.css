@@ -96,7 +96,7 @@ p{margin:0}
 .hdr.up{transform:translateY(-115%)}
 .brand{display:flex;align-items:center;gap:10px;color:var(--fg);
   font-family:var(--f-poster);font-weight:700;text-transform:uppercase;font-size:1.15rem;letter-spacing:.01em}
-.brand i{width:26px;height:26px;background:var(--acid);display:block;flex:none;
+.brand i{width:30px;height:30px;background:var(--acid);display:block;flex:none;
   -webkit-mask:url(assets/mark.svg) center/contain no-repeat;
           mask:url(assets/mark.svg) center/contain no-repeat;
   filter:drop-shadow(0 0 11px rgba(216,255,62,.5))}
