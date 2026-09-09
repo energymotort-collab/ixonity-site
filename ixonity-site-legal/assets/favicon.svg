@@ -9,5 +9,5 @@
     <clipPath id="c2"><path d="M-512.0,599.8 L1024.0,70.9 L1024.0,1536.0 L-512.0,1536.0 Z"/></clipPath>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#bgg)"/>
-  <g fill="url(#lime)"><g transform="translate(14.79,-10.51)"><g clip-path="url(#c0)"><use href="#d"/></g></g><g transform="translate(0.00,0.00)"><g clip-path="url(#c1)"><use href="#d"/></g></g><g transform="translate(-14.79,10.51)"><g clip-path="url(#c2)"><use href="#d"/></g></g></g>
+  <g fill="#D8FF3E"><g transform="translate(14.79,-10.51)"><g clip-path="url(#c0)"><use href="#d"/></g></g><g transform="translate(0.00,0.00)"><g clip-path="url(#c1)"><use href="#d"/></g></g><g transform="translate(-14.79,10.51)"><g clip-path="url(#c2)"><use href="#d"/></g></g></g>
 </svg>
