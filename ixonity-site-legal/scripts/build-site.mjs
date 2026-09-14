@@ -194,6 +194,32 @@ for (const lang of ['ua', 'en']) {
 }
 
 const siteBase = String(process.env.SITE_BASE || '').replace(/\/$/, '');
+
+/* Соцмережі не вміють у відносні адреси картинки — коли знаємо домен,
+   робимо og:image абсолютним, а заодно проставляємо og:url кожній мові. */
+if (siteBase) {
+  const absolutise = [
+    ['index.html', '/'],
+    ['ua/index.html', '/ua/'],
+    ['en/index.html', '/en/']
+  ];
+  for (const [file, route] of absolutise) {
+    const full = path.join(rootDir, file);
+    if (!fs.existsSync(full)) continue;
+    let page = fs.readFileSync(full, 'utf8');
+    page = page.replace(/(<meta property="og:image" content=")[^"]*(")/,
+                        '$1' + siteBase + '/assets/hero-main.jpg$2');
+    if (page.includes('property="og:url"')) {
+      page = page.replace(/(<meta property="og:url" content=")[^"]*(")/,
+                          '$1' + siteBase + route + '$2');
+    } else {
+      page = page.replace(/(<meta property="og:type"[^>]*>)/,
+                          '$1<meta property="og:url" content="' + siteBase + route + '">');
+    }
+    fs.writeFileSync(full, page);
+  }
+}
+
 if (siteBase) {
   const urls = [
     '/ua/', '/en/', '/privacy.html', '/terms.html', '/impressum.html',
@@ -201,9 +227,13 @@ if (siteBase) {
     '/en/cases/archdep.html', '/en/cases/qr-ixonity.html', '/en/cases/stormdive.html'
   ];
   const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    urls.map(function(url) { return '  <url><loc>' + siteBase + url + '</loc><lastmod>2026-09-09</lastmod></url>'; }).join('\n') +
+    urls.map(function(url) { return '  <url><loc>' + siteBase + url + '</loc><lastmod>' + new Date().toISOString().slice(0, 10) + '</lastmod></url>'; }).join('\n') +
     '\n</urlset>\n';
   fs.writeFileSync(path.join(rootDir, 'sitemap.xml'), xml);
+  const robotsPath = path.join(rootDir, 'robots.txt');
+  let robots = fs.existsSync(robotsPath) ? fs.readFileSync(robotsPath, 'utf8') : 'User-agent: *\nAllow: /\n';
+  robots = robots.replace(/\nSitemap: .*/g, '').trimEnd() + '\nSitemap: ' + siteBase + '/sitemap.xml\n';
+  fs.writeFileSync(robotsPath, robots);
 }
 
 console.log('Built /ua, /en and 6 localized case pages.');

@@ -45,19 +45,42 @@ node scripts/build-site.mjs
 
 Форма надсилає JSON через FormSubmit на `ixonity@gmail.com`. Перше реальне відправлення створить лист активації — власник цієї пошти має підтвердити адресу. Не змінюйте одержувача на email GitHub-акаунта, якщо він не повинен отримувати заявки.
 
-## Рекомендована публікація
+## Публікація на Cloudflare Pages
 
-GitHub зберігає код, Cloudflare Pages публікує сайт і виконує географічну логіку на edge.
+Домен `ixonity.dev` зареєстровано в Cloudflare, тому сайт живе там же: DNS
+підключається одним кліком, а `functions/` виконуються на edge.
 
-1. Підключіть у Cloudflare Pages GitHub-репозиторій `energymotort-collab/ixonity-site`.
-2. Production branch: `main`.
-3. Build command: `node scripts/build-site.mjs`.
-4. Build output directory: `.`.
-5. Після deployment підключіть свій домен у Cloudflare Pages.
+Налаштування проєкту Pages для цього репозиторію:
 
-GitHub Pages також може віддати HTML/CSS/JS, але не виконає `functions/`, тому точне автоматичне
-розділення цін за країною там працювати не буде. Firebase Hosting для цього сайту технічно можливий,
-але потребує Functions/Cloud Run і буде складнішим без практичної переваги.
+| поле | значення |
+|---|---|
+| Repository | `energymotort-collab/ixonity-site` |
+| Production branch | `main` |
+| Framework preset | None |
+| Root directory | `ixonity-site-legal` |
+| Build command | `node scripts/build-site.mjs` |
+| Build output directory | `.` |
+| Environment variable | `SITE_BASE = https://ixonity.dev` |
+
+`SITE_BASE` обовʼязковий: без нього не генерується `sitemap.xml`, а `og:image`
+і `og:url` лишаються відносними, і соцмережі не показують прев'ю.
+
+Що дає Cloudflare, чого не дає GitHub Pages:
+
+- `functions/api/market.js` віддає країну відвідувача, тому українці бачать
+  гривню, решта світу — євро. На GitHub Pages ця функція не виконується.
+- `functions/index.js` перекидає корінь на `/ua/` або `/en/` за країною.
+- сайт лежить у корені домену, а не в підпапці.
+
+Після першого деплою: **Custom domains → Set up a domain** для `ixonity.dev`
+і `www.ixonity.dev`. Записи створяться автоматично, бо домен у тому ж акаунті.
+`.dev` входить у список HSTS preload, тож HTTPS вмикається примусово — це норма.
+
+Перевірка, що edge-логіка жива: `https://ixonity.dev/api/market` має віддати
+`{"market":"ua"}` або `{"market":"global"}`.
+
+GitHub Pages після цього краще вимкнути (**Settings → Pages → Source: None**),
+щоб пошук не бачив дві копії сайту.
 
 ## Свій домен
 1. Купіть домен (наприклад `ixonity.com.ua`).
