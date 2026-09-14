@@ -21,7 +21,7 @@ Production-репозиторій: `https://github.com/energymotort-collab/ixoni
 
 **Контакти й курс долара** — початок `app.js`, об'єкт `CFG`:
 ```js
-const CFG = { email:'ixonity@gmail.com', phone:'+380771817071', usdToUah: 44.47 };
+const CFG = { email:'hello@ixonity.dev', phone:'+380771817071', usdToUah: 44.47 };
 ```
 
 **Ціни** — в `index.html` є окремі панелі `data-market-panel="ua"` і `data-market-panel="global"`.
@@ -43,7 +43,7 @@ node scripts/build-site.mjs
 
 ## Форма заявок
 
-Форма надсилає JSON через FormSubmit на `ixonity@gmail.com`. Перше реальне відправлення створить лист активації — власник цієї пошти має підтвердити адресу. Не змінюйте одержувача на email GitHub-акаунта, якщо він не повинен отримувати заявки.
+Форма надсилає JSON через FormSubmit на `hello@ixonity.dev`. Перше реальне відправлення створить лист активації — власник цієї пошти має підтвердити адресу. Не змінюйте одержувача на email GitHub-акаунта, якщо він не повинен отримувати заявки.
 
 ## Публікація на Cloudflare Pages
 

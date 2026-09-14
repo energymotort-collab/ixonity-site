@@ -176,7 +176,7 @@ function casePage(slug, item, lang) {
     '<section class="case-main"><div class="case-wrap"><div class="case-intro"><div><span class="case-num">01 / Context</span><h2>' + t.problemTitle + '</h2></div><div class="case-copy"><article><h3>01 — ' + t.problemTitle + '</h3><p>' + t.problem + '</p></article><article><h3>02 — ' + t.approachTitle + '</h3><p>' + t.approach + '</p></article><article><h3>03 — ' + t.outcomeTitle + '</h3><p>' + t.outcome + '</p></article></div></div>',
     '<div class="case-shot">' + shot + '<span class="case-shot__label">' + t.imageLabel + '</span></div></div></section>',
     '<section class="case-wrap case-next"><a href="' + item.next + '.html"><small>' + t.nextLabel + '</small><strong>' + t.next + ' →</strong></a><a class="case-cta" href="' + item.external + '" target="_blank" rel="noopener">' + t.view + ' ↗</a></section>',
-    '</main><footer class="case-wrap case-next"><span>© <span data-year></span> Ixonity</span><a href="../#contact">ixonity@gmail.com</a></footer>',
+    '</main><footer class="case-wrap case-next"><span>© <span data-year></span> Ixonity</span><a href="../#contact">hello@ixonity.dev</a></footer>',
     '<script src="../../case.js?v=cases-v1-20260909"></script>',
     '</body></html>'
   ];

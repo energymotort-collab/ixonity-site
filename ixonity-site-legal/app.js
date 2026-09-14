@@ -7,11 +7,11 @@
 
 /* --- CONFIG: правьте здесь ---------------------------------- */
 const CFG = {
-  email:    'ixonity@gmail.com',
+  email:    'hello@ixonity.dev',
   phone:    '+380771817071',
   usdToUah: 44.47,         // НБУ на 09.09.2026; оновлюйте раз на місяць
   usdToEur: 0.86,          // USD → EUR за крос-курсом НБУ на 09.09.2026
-  formEndpoint: 'https://formsubmit.co/ajax/ixonity@gmail.com',
+  formEndpoint: 'https://formsubmit.co/ajax/hello@ixonity.dev',
 };
 /* ------------------------------------------------------------ */
 
@@ -1034,7 +1034,7 @@ ${L('Надіслано з сайту ixonity','Sent from the ixonity site')}`;
           L('Не вдалося надіслати автоматично. Бриф скопійовано в буфер — ',
             'Automatic sending failed. The brief is copied to the clipboard — ') +
           `<a href="${mail}">` + L('надішліть його листом', 'send it by email') + '</a>' +
-          L(', або напишіть на ixonity@gmail.com.', ', or write to ixonity@gmail.com.'),
+          L(', або напишіть на hello@ixonity.dev.', ', or write to hello@ixonity.dev.'),
           'err', true);
       }
     } finally {
