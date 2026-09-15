@@ -9,8 +9,8 @@
 const CFG = {
   email:    'hello@ixonity.dev',
   phone:    '+380771817071',
-  usdToUah: 44.47,         // НБУ на 09.09.2026; оновлюйте раз на місяць
-  usdToEur: 0.86,          // USD → EUR за крос-курсом НБУ на 09.09.2026
+  usdToUah: 44.64,         // НБУ на 16.09.2026; оновлюйте раз на місяць
+  usdToEur: 0.867,         // USD → EUR за крос-курсом НБУ на 16.09.2026
   formEndpoint: 'https://formsubmit.co/ajax/hello@ixonity.dev',
 };
 /* ------------------------------------------------------------ */
