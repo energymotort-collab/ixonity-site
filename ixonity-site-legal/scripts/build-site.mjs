@@ -17,14 +17,56 @@ function translateEnglish(html) {
   });
 }
 
+const usdToUah = Number((appJs.match(/usdToUah:\s*([\d.]+)/) || [])[1] || 44.47);
+const usdToEur = Number((appJs.match(/usdToEur:\s*([\d.]+)/) || [])[1] || 0.86);
+
+/* Текст відповіді у розмітці має збігатися з тим, що бачить людина,
+   тож ціновий діапазон рахуємо так само, як його малює сторінка. */
+function priceRange(attr, lang) {
+  const [a, b] = attr.split(',').map(Number);
+  const grp = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  if (lang === 'en') {
+    const r = n => Math.round(n * usdToEur / 50) * 50;
+    return '€' + grp(r(a)) + '–' + grp(r(b));
+  }
+  const r = n => Math.round(n * usdToUah / 500) * 500;
+  return grp(r(a)) + '–' + grp(r(b)) + ' ₴';
+}
+
+function plainText(html, lang) {
+  return html
+    .replace(/<span data-usd-range="([^"]+)"[^>]*><\/span>/g, (_, a) => priceRange(a, lang))
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function faqSchema(html, lang) {
+  const re = /<span data-i18n="f(\d+)q">([\s\S]*?)<\/span>[\s\S]*?<p data-i18n="f\1a">([\s\S]*?)<\/p>/g;
+  const items = [];
+  let m;
+  while ((m = re.exec(html))) {
+    items.push({
+      '@type': 'Question',
+      name: plainText(m[2], lang),
+      acceptedAnswer: { '@type': 'Answer', text: plainText(m[3], lang) }
+    });
+  }
+  if (!items.length) return '';
+  return '<script type="application/ld+json">' +
+    JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: items }) +
+    '</script>';
+}
+
 function localePage(lang) {
   let html = lang === 'en' ? translateEnglish(rootHtml) : rootHtml;
   const title = lang === 'en'
-    ? 'Ixonity — Digital Product Studio from Ukraine'
-    : 'Ixonity — digital product studio з України';
+    ? 'Websites & Mobile Apps, Built End to End — Ixonity'
+    : 'Розробка сайтів і мобільних застосунків — Ixonity';
   const description = lang === 'en'
-    ? 'Ixonity designs and builds premium websites, e-commerce, web apps, mobile products, UI/UX and interactive WebGL experiences for clients worldwide.'
-    : 'Ixonity проєктує та створює цифрові продукти: premium websites, e-commerce, web apps, iOS, Android, UI/UX і WebGL. Базуємося в Україні, працюємо по всьому світу.';
+    ? 'Ixonity builds websites, online stores, iOS and Android apps and the backend behind them. One team from the first screen to launch. Transparent pricing, contract, fixed milestones.'
+    : 'Розробка сайтів, інтернет-магазинів і застосунків iOS та Android під ключ: дизайн, код, бекенд, аналітика. Прозорі ціни, договір, фіксовані етапи. Студія Ixonity, Одеса.';
   html = html.replace('<html lang="uk">', '<html lang="' + lang + '">');
   html = html.replace('<body>', '<body data-locale-route="' + lang + '">');
   html = html.replace(/<title>[\s\S]*?<\/title>/, '<title>' + title + '</title>');
@@ -52,6 +94,8 @@ function localePage(lang) {
     html = html.replace('"addressLocality":"Одеса"', '"addressLocality":"Odesa"');
     html = html.replace('"areaServed":"UA"', '"areaServed":"Worldwide"');
   }
+  const faq = faqSchema(html, lang);
+  if (faq) html = html.replace('</head>', '  ' + faq + '\n</head>');
   return html;
 }
 
@@ -221,19 +265,109 @@ if (siteBase) {
 }
 
 if (siteBase) {
-  const urls = [
-    '/ua/', '/en/', '/privacy.html', '/terms.html', '/impressum.html',
-    '/ua/cases/archdep.html', '/ua/cases/qr-ixonity.html', '/ua/cases/stormdive.html',
-    '/en/cases/archdep.html', '/en/cases/qr-ixonity.html', '/en/cases/stormdive.html'
+  const today = new Date().toISOString().slice(0, 10);
+
+  /* Карта сайту з мовними альтернативами: пошуковик одразу бачить,
+     що це одна сторінка двома мовами, а не два різні документи. */
+  const pairs = [
+    ['/ua/', '/en/'],
+    ['/ua/cases/archdep.html', '/en/cases/archdep.html'],
+    ['/ua/cases/qr-ixonity.html', '/en/cases/qr-ixonity.html'],
+    ['/ua/cases/stormdive.html', '/en/cases/stormdive.html']
   ];
-  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    urls.map(function(url) { return '  <url><loc>' + siteBase + url + '</loc><lastmod>' + new Date().toISOString().slice(0, 10) + '</lastmod></url>'; }).join('\n') +
-    '\n</urlset>\n';
-  fs.writeFileSync(path.join(rootDir, 'sitemap.xml'), xml);
-  const robotsPath = path.join(rootDir, 'robots.txt');
-  let robots = fs.existsSync(robotsPath) ? fs.readFileSync(robotsPath, 'utf8') : 'User-agent: *\nAllow: /\n';
-  robots = robots.replace(/\nSitemap: .*/g, '').trimEnd() + '\nSitemap: ' + siteBase + '/sitemap.xml\n';
-  fs.writeFileSync(robotsPath, robots);
+  const single = ['/privacy.html', '/terms.html', '/impressum.html'];
+
+  const alts = (uk, en) =>
+    '    <xhtml:link rel="alternate" hreflang="uk" href="' + siteBase + uk + '"/>\n' +
+    '    <xhtml:link rel="alternate" hreflang="en" href="' + siteBase + en + '"/>\n' +
+    '    <xhtml:link rel="alternate" hreflang="x-default" href="' + siteBase + uk + '"/>\n';
+
+  let body = '';
+  for (const [uk, en] of pairs) {
+    for (const [loc, prio] of [[uk, '1.0'], [en, '0.9']]) {
+      body += '  <url>\n    <loc>' + siteBase + loc + '</loc>\n' + alts(uk, en) +
+              '    <lastmod>' + today + '</lastmod>\n    <priority>' + prio + '</priority>\n  </url>\n';
+    }
+  }
+  for (const loc of single) {
+    body += '  <url>\n    <loc>' + siteBase + loc + '</loc>\n    <lastmod>' + today +
+            '</lastmod>\n    <priority>0.3</priority>\n  </url>\n';
+  }
+
+  fs.writeFileSync(path.join(rootDir, 'sitemap.xml'),
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' +
+    ' xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + body + '</urlset>\n');
+
+  /* robots: пошуковики й помічники на базі ШІ пускаємо явно.
+     Google-Extended і Applebot-Extended це саме токени згоди на навчання. */
+  const aiBots = ['GPTBot','OAI-SearchBot','ChatGPT-User','ClaudeBot','Claude-User',
+                  'Claude-SearchBot','PerplexityBot','Perplexity-User','Google-Extended',
+                  'Applebot-Extended','Bingbot','CCBot','meta-externalagent','Amazonbot',
+                  'DuckAssistBot','YouBot','cohere-ai'];
+  fs.writeFileSync(path.join(rootDir, 'robots.txt'),
+    'User-agent: *\nAllow: /\n\n' +
+    '# Пошукові та ШІ-агенти пускаємо свідомо\n' +
+    aiBots.map(b => 'User-agent: ' + b + '\nAllow: /').join('\n\n') + '\n\n' +
+    'Sitemap: ' + siteBase + '/sitemap.xml\n');
+
+  /* llms.txt — коротка вижимка сайту для мовних моделей:
+     вони читають її замість того, щоб вгадувати зміст зі верстки. */
+  fs.writeFileSync(path.join(rootDir, 'llms.txt'),
+`# Ixonity
+
+> Студія повного циклу з Одеси, Україна. Проєктуємо і розробляємо сайти,
+> інтернет-магазини, застосунки для iOS та Android і бекенд під них.
+> Одна команда від першого екрана до запуску.
+
+Мови сайту: українська (/ua/) та англійська (/en/).
+Ціни для клієнтів з України у гривні, для решти світу в євро — сторінка
+визначає це автоматично за країною відвідувача.
+
+## Що робимо
+
+- Сайти й лендинги: дизайн, код, аналітика, базове SEO
+- Інтернет-магазини та каталоги: фільтри, кошик, оплата, доставка
+- Застосунки iOS та Android: від макета до публікації в сторах
+- Бекенд та інтеграції: CRM, склад, платіжні системи, Telegram
+- UI/UX дизайн і прототипування
+
+## Як працюємо
+
+1. Бриф у листуванні, близько 30 хвилин, без дзвінків
+2. Прототип до того, як клієнт платить за дизайн
+3. Дизайн і код, показуємо щотижня
+4. Запуск, домен, аналітика, місяць підтримки
+
+Договір, фіксовані етапи оплати, акт виконаних робіт.
+ФОП, 3 група єдиного податку, не платник ПДВ.
+
+## Орієнтовні ціни
+
+- Лендинг: від 18 000 ₴
+- Сайт або інтернет-магазин: від 40 000 ₴
+- Мобільний застосунок: від 150 000 ₴
+
+Точна сума після брифу. Міжнародним клієнтам розрахунок у євро.
+
+## Сторінки
+
+- [Головна, українською](${siteBase}/ua/)
+- [Головна, англійською](${siteBase}/en/)
+- [Кейс: мобільний магазин меблів](${siteBase}/ua/cases/archdep.html)
+- [Кейс: QR-продукт](${siteBase}/ua/cases/qr-ixonity.html)
+- [Кейс: інтерактивний продукт](${siteBase}/ua/cases/stormdive.html)
+- [Політика конфіденційності](${siteBase}/privacy.html)
+- [Умови](${siteBase}/terms.html)
+- [Реквізити](${siteBase}/impressum.html)
+
+## Контакти
+
+- Пошта: hello@ixonity.dev
+- Телефон і WhatsApp: +380 77 181 70 71
+- Instagram: https://instagram.com/ixonity_studio
+- Локація: Одеса, Україна. Працюємо з клієнтами з України, ЄС, Великої Британії та США.
+`);
 }
 
 console.log('Built /ua, /en and 6 localized case pages.');

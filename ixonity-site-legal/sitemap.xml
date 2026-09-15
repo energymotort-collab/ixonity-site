@@ -1,14 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://ixonity.dev/ua/</loc><lastmod>2026-09-14</lastmod></url>
-  <url><loc>https://ixonity.dev/en/</loc><lastmod>2026-09-14</lastmod></url>
-  <url><loc>https://ixonity.dev/privacy.html</loc><lastmod>2026-09-14</lastmod></url>
-  <url><loc>https://ixonity.dev/terms.html</loc><lastmod>2026-09-14</lastmod></url>
-  <url><loc>https://ixonity.dev/impressum.html</loc><lastmod>2026-09-14</lastmod></url>
-  <url><loc>https://ixonity.dev/ua/cases/archdep.html</loc><lastmod>2026-09-14</lastmod></url>
-  <url><loc>https://ixonity.dev/ua/cases/qr-ixonity.html</loc><lastmod>2026-09-14</lastmod></url>
-  <url><loc>https://ixonity.dev/ua/cases/stormdive.html</loc><lastmod>2026-09-14</lastmod></url>
-  <url><loc>https://ixonity.dev/en/cases/archdep.html</loc><lastmod>2026-09-14</lastmod></url>
-  <url><loc>https://ixonity.dev/en/cases/qr-ixonity.html</loc><lastmod>2026-09-14</lastmod></url>
-  <url><loc>https://ixonity.dev/en/cases/stormdive.html</loc><lastmod>2026-09-14</lastmod></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://ixonity.dev/ua/</loc>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://ixonity.dev/ua/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ixonity.dev/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ixonity.dev/ua/"/>
+    <lastmod>2026-09-15</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://ixonity.dev/en/</loc>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://ixonity.dev/ua/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ixonity.dev/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ixonity.dev/ua/"/>
+    <lastmod>2026-09-15</lastmod>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ixonity.dev/ua/cases/archdep.html</loc>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://ixonity.dev/ua/cases/archdep.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ixonity.dev/en/cases/archdep.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ixonity.dev/ua/cases/archdep.html"/>
+    <lastmod>2026-09-15</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://ixonity.dev/en/cases/archdep.html</loc>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://ixonity.dev/ua/cases/archdep.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ixonity.dev/en/cases/archdep.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ixonity.dev/ua/cases/archdep.html"/>
+    <lastmod>2026-09-15</lastmod>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ixonity.dev/ua/cases/qr-ixonity.html</loc>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://ixonity.dev/ua/cases/qr-ixonity.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ixonity.dev/en/cases/qr-ixonity.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ixonity.dev/ua/cases/qr-ixonity.html"/>
+    <lastmod>2026-09-15</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://ixonity.dev/en/cases/qr-ixonity.html</loc>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://ixonity.dev/ua/cases/qr-ixonity.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ixonity.dev/en/cases/qr-ixonity.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ixonity.dev/ua/cases/qr-ixonity.html"/>
+    <lastmod>2026-09-15</lastmod>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ixonity.dev/ua/cases/stormdive.html</loc>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://ixonity.dev/ua/cases/stormdive.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ixonity.dev/en/cases/stormdive.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ixonity.dev/ua/cases/stormdive.html"/>
+    <lastmod>2026-09-15</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://ixonity.dev/en/cases/stormdive.html</loc>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://ixonity.dev/ua/cases/stormdive.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ixonity.dev/en/cases/stormdive.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ixonity.dev/ua/cases/stormdive.html"/>
+    <lastmod>2026-09-15</lastmod>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ixonity.dev/privacy.html</loc>
+    <lastmod>2026-09-15</lastmod>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://ixonity.dev/terms.html</loc>
+    <lastmod>2026-09-15</lastmod>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://ixonity.dev/impressum.html</loc>
+    <lastmod>2026-09-15</lastmod>
+    <priority>0.3</priority>
+  </url>
 </urlset>
