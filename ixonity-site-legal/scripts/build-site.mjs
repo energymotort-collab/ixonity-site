@@ -149,30 +149,52 @@ function localePage(lang) {
 
 const cases = {
   archdep: {
-    image:'archdep-feature.png',
-    tags:'SwiftUI · Firebase · Monobank',
-    external:'https://apps.apple.com/app/id6748553482',
+    image:'cases/archdep/site-desktop.jpg',
+    mobileImage:'cases/archdep/site-mobile.jpg',
+    website:'https://archdepfurniture.com/',
+    external:'https://apps.apple.com/ua/app/archdep-furniture/id6748553482',
+    tags:'Web · SwiftUI · 3D/AR · Monobank',
+    gallery:{
+      appIcon:'cases/archdep/app-icon.jpg',
+      qr:'cases/archdep/appstore-qr.svg',
+      appShots:[
+        {src:'cases/archdep/app-home.jpg', key:'home'},
+        {src:'cases/archdep/app-3d.jpg', key:'threeD'},
+        {src:'cases/archdep/app-catalog.jpg', key:'catalog'},
+        {src:'cases/archdep/app-checkout.jpg', key:'checkout'}
+      ]
+    },
     ua:{
-      title:'Archdep.Furniture', kicker:'Case 01 / Mobile commerce', role:'Product design + iOS', status:'Published on App Store', year:'2025–2026',
-      deck:'Мобільний магазин українських меблів, у якому каталог, оплата та робота менеджера зібрані в один цілісний продукт.',
-      problemTitle:'Не просто каталог, а робочий канал продажу',
-      problem:'Завданням було перенести складний меблевий асортимент у телефон без втрати логіки вибору. Користувачеві потрібні фільтри, кошик і зрозуміле замовлення; менеджеру — контроль заявок та аналітика.',
-      approachTitle:'Один продукт від UX до релізу',
-      approach:'Спроєктовано мобільні сценарії, інтерфейс і технічну архітектуру. Реалізовано нативний застосунок на SwiftUI, Firebase, еквайринг Monobank, аналітику поведінки та кабінет менеджера.',
-      outcomeTitle:'Реальний застосунок у проді',
-      outcome:'Продукт пройшов повний шлях від першого макета до публікації в App Store. Вихідний код, операційні сценарії та доступи залишаються частиною керованої продуктової системи.',
-      back:'← Усі роботи', view:'Відкрити в App Store', nextLabel:'Наступний кейс', next:'QR-Ixonity', imageLabel:'Product interface / production'
+      title:'Archdep.Furniture', kicker:'Case 01 / Commerce ecosystem', role:'Продуктова екосистема · web + iOS', status:'Сайт і застосунок у проді', year:'2025–2026',
+      deck:'Цілісна e-commerce екосистема Archdep Furniture: адаптивний сайт і нативний iOS-застосунок з 3D/AR, конфігурацією виробів та оплатою.',
+      problemTitle:'Один бренд — один шлях до покупки',
+      problem:'Складний меблевий асортимент потрібно було зробити зрозумілим і на великому екрані, і в телефоні. Людина має легко перейти від натхнення до конкретної моделі, варіанта, кошика та замовлення.',
+      approachTitle:'Сайт і застосунок як одна система',
+      approach:'Візуальну мову, каталог і сценарії покупки зібрано в узгоджену екосистему. Сайт знайомить з брендом і колекціями, а застосунок додає 3D-перегляд, AR-примірку в просторі, конфігурацію та оплату частинами Monobank.',
+      outcomeTitle:'Актуальний продукт у відкритому доступі',
+      outcome:'Сайт працює на всіх основних екранах, а версія 2.0 застосунку опублікована в App Store. У кейсі нижче показані реальні актуальні інтерфейси — без старих мокапів і випадкового обрізання.',
+      back:'← Усі роботи', view:'Відкрити в App Store', websiteView:'Відкрити сайт', nextLabel:'Наступний кейс', next:'QR-Ixonity', imageLabel:'Live website / production',
+      showcaseEyebrow:'02 / Живий продукт', showcaseTitle:'Сайт і застосунок, якими вже можна користуватися', showcaseDeck:'Актуальні екрани з production-версій. Повний desktop і mobile показані без обрізання, а галерея застосунку зібрана з поточної версії в App Store.',
+      desktopLabel:'Актуальний сайт · desktop', mobileLabel:'Актуальний сайт · mobile',
+      installEyebrow:'Archdep.Furniture · iOS', installTitle:'Колекції Archdep завжди під рукою', installText:'Наведіть камеру iPhone на QR-код або відкрийте сторінку застосунку напряму.', qrAlt:'QR-код для завантаження Archdep.Furniture в App Store',
+      appEyebrow:'03 / iOS-застосунок', appTitle:'Від вибору до покупки — в одному інтерфейсі', appDeck:'Головна, живий 3D-перегляд, каталог і оформлення покупки. На телефоні картки гортайте горизонтально.',
+      shotLabels:{home:'Головна', threeD:'3D-перегляд', catalog:'Каталог', checkout:'Кошик і оплата'}
     },
     en:{
-      title:'Archdep.Furniture', kicker:'Case 01 / Mobile commerce', role:'Product design + iOS', status:'Published on App Store', year:'2025–2026',
-      deck:'A mobile store for Ukrainian furniture, bringing catalogue discovery, payment and manager operations into one coherent product.',
-      problemTitle:'A sales channel, not merely a catalogue',
-      problem:'The challenge was to move a complex furniture range onto a phone without losing the logic of selection. Customers need filters, cart and clear ordering; managers need lead control and behavioural insight.',
-      approachTitle:'One product from UX to release',
-      approach:'We designed the mobile journeys, interface and technical architecture. The native SwiftUI app uses Firebase, Monobank acquiring, behavioural analytics and a dedicated manager dashboard.',
-      outcomeTitle:'A real product in production',
-      outcome:'The product travelled from first mockup to App Store publication. Source code, operating flows and access credentials remain part of a manageable product system.',
-      back:'← All work', view:'Open on the App Store', nextLabel:'Next case', next:'QR-Ixonity', imageLabel:'Product interface / production'
+      title:'Archdep.Furniture', kicker:'Case 01 / Commerce ecosystem', role:'Product ecosystem · web + iOS', status:'Website and app live', year:'2025–2026',
+      deck:'A cohesive Archdep Furniture commerce ecosystem: a responsive website and native iOS app with 3D/AR, product configuration and payments.',
+      problemTitle:'One brand, one path to purchase',
+      problem:'A complex furniture range had to feel clear on both large screens and phones. People need a frictionless path from inspiration to a specific model, variant, cart and order.',
+      approachTitle:'Website and app as one system',
+      approach:'The visual language, catalogue and purchase journeys were shaped into one consistent ecosystem. The website introduces the brand and collections; the app adds live 3D, AR placement, product configuration and Monobank instalments.',
+      outcomeTitle:'A current product in public use',
+      outcome:'The website works across the main screen sizes, while version 2.0 of the app is live on the App Store. The gallery below uses current production interfaces—not obsolete mockups or awkward crops.',
+      back:'← All work', view:'Open on the App Store', websiteView:'Visit website', nextLabel:'Next case', next:'QR-Ixonity', imageLabel:'Live website / production',
+      showcaseEyebrow:'02 / Live product', showcaseTitle:'A website and app you can use today', showcaseDeck:'Current screens from the production releases. The desktop and mobile pages are shown uncropped, while the app gallery comes from the current App Store version.',
+      desktopLabel:'Current website · desktop', mobileLabel:'Current website · mobile',
+      installEyebrow:'Archdep.Furniture · iOS', installTitle:'Keep the Archdep collection close at hand', installText:'Scan the QR code with your iPhone camera or open the App Store page directly.', qrAlt:'QR code to download Archdep.Furniture from the App Store',
+      appEyebrow:'03 / iOS application', appTitle:'From discovery to purchase in one interface', appDeck:'Home, live 3D, the catalogue and checkout. Swipe the cards horizontally on a phone.',
+      shotLabels:{home:'Home', threeD:'Live 3D', catalog:'Catalogue', checkout:'Cart and payment'}
     },
     next:'qr-ixonity'
   },
@@ -239,12 +261,12 @@ const caseSeo = {
   archdep: {
     og:'archdep.jpg',
     ua:{
-      title:'Archdep: мобільний магазин меблів для iOS — Ixonity',
-      description:'Кейс Ixonity: UX/UI та розробка SwiftUI-застосунку Archdep.Furniture з каталогом, кошиком, оплатою Monobank, Firebase і кабінетом менеджера.'
+      title:'Archdep Furniture: сайт та iOS-застосунок — кейс Ixonity',
+      description:'Кейс e-commerce екосистеми Archdep Furniture: адаптивний сайт, нативний iOS-застосунок, 3D/AR, конфігурація виробів і оплата Monobank.'
     },
     en:{
-      title:'Archdep: iOS Furniture Store Case Study — Ixonity',
-      description:'How Ixonity designed and built the Archdep.Furniture iOS app with product discovery, cart, Monobank payments, Firebase and a manager dashboard.'
+      title:'Archdep Furniture Website & iOS App — Ixonity Case Study',
+      description:'The Archdep Furniture commerce ecosystem: responsive website, native iOS app, 3D and AR product viewing, configuration and Monobank payments.'
     }
   },
   'qr-ixonity': {
@@ -281,6 +303,17 @@ function caseStructuredData(slug, item, lang, seo, canonical, imageUrl) {
   const applicationCategory = slug === 'archdep'
     ? 'ShoppingApplication'
     : (slug === 'qr-ixonity' ? 'UtilitiesApplication' : 'GraphicsApplication');
+  const product = {
+    '@type':'SoftwareApplication', '@id':canonical + '#product', name:t.title,
+    description:t.deck, applicationCategory,
+    operatingSystem:slug === 'stormdive' ? 'Web browser' : 'iOS',
+    url:item.external
+  };
+  if (item.gallery) {
+    product.installUrl = item.external;
+    product.sameAs = [item.website, item.external];
+    product.screenshot = item.gallery.appShots.map(shot => siteBase + '/assets/' + shot.src);
+  }
   return JSON.stringify({
     '@context':'https://schema.org',
     '@graph':[
@@ -296,12 +329,7 @@ function caseStructuredData(slug, item, lang, seo, canonical, imageUrl) {
         author:{'@id':siteBase + '/#studio'}, publisher:{'@id':siteBase + '/#studio'},
         about:{'@id':canonical + '#product'}
       },
-      {
-        '@type':'SoftwareApplication', '@id':canonical + '#product', name:t.title,
-        description:t.deck, applicationCategory,
-        operatingSystem:slug === 'stormdive' ? 'Web browser' : 'iOS',
-        url:item.external
-      },
+      product,
       {
         '@type':'BreadcrumbList', itemListElement:[
           {'@type':'ListItem', position:1, name:'Ixonity', item:siteBase + '/' + lang + '/'},
@@ -312,20 +340,69 @@ function caseStructuredData(slug, item, lang, seo, canonical, imageUrl) {
   });
 }
 
+function archdepShowcase(item, t, lang) {
+  const asset = file => '../../assets/' + file;
+  const desktopAlt = lang === 'ua'
+    ? 'Актуальна головна сторінка Archdep Furniture на комп’ютері'
+    : 'Current Archdep Furniture homepage on desktop';
+  const mobileAlt = lang === 'ua'
+    ? 'Актуальна мобільна версія сайту Archdep Furniture'
+    : 'Current mobile version of the Archdep Furniture website';
+  const appCards = item.gallery.appShots.map((shot, index) =>
+    '<figure class="case-app-card">' +
+      '<img src="' + asset(shot.src) + '" width="920" height="2000" alt="' + esc('Archdep.Furniture — ' + t.shotLabels[shot.key]) + '" loading="lazy" decoding="async">' +
+      '<figcaption><span>0' + (index + 1) + '</span>' + t.shotLabels[shot.key] + '</figcaption>' +
+    '</figure>'
+  ).join('');
+
+  return [
+    '<div class="case-showcase" id="archdep-live">',
+    '<header class="case-showcase__head"><div><span class="case-num">' + t.showcaseEyebrow + '</span><h2>' + t.showcaseTitle + '</h2></div><p>' + t.showcaseDeck + '</p></header>',
+    '<figure class="case-browser">',
+      '<div class="case-browser__chrome" aria-hidden="true"><span class="case-browser__dots"><i></i><i></i><i></i></span><span class="case-browser__url">archdepfurniture.com</span><span class="case-browser__live">Live</span></div>',
+      '<a href="' + item.website + '" target="_blank" rel="noopener" aria-label="' + esc(t.websiteView) + '"><img src="' + asset(item.image) + '" width="1920" height="1200" alt="' + esc(desktopAlt) + '" loading="lazy" decoding="async"></a>',
+      '<figcaption><span><i></i>' + t.desktopLabel + '</span><a href="' + item.website + '" target="_blank" rel="noopener">' + t.websiteView + ' ↗</a></figcaption>',
+    '</figure>',
+    '<div class="case-live-grid">',
+      '<figure class="case-mobile-card"><div><img src="' + asset(item.mobileImage) + '" width="738" height="1600" alt="' + esc(mobileAlt) + '" loading="lazy" decoding="async"></div><figcaption><span><i></i>' + t.mobileLabel + '</span></figcaption></figure>',
+      '<aside class="case-install">',
+        '<div class="case-install__top"><img src="' + asset(item.gallery.appIcon) + '" width="512" height="512" alt="Archdep.Furniture app icon" loading="lazy"><div><span>' + t.installEyebrow + '</span><b>Version 2.0</b></div></div>',
+        '<div class="case-install__copy"><h3>' + t.installTitle + '</h3><p>' + t.installText + '</p></div>',
+        '<a class="case-install__qr" href="' + item.external + '" target="_blank" rel="noopener" aria-label="' + esc(t.view) + '"><img src="' + asset(item.gallery.qr) + '" width="220" height="220" alt="' + esc(t.qrAlt) + '" loading="lazy"></a>',
+        '<div class="case-install__actions"><a class="case-cta" href="' + item.external + '" target="_blank" rel="noopener">' + t.view + ' ↗</a><a class="case-cta case-cta--ghost" href="' + item.website + '" target="_blank" rel="noopener">' + t.websiteView + ' ↗</a></div>',
+      '</aside>',
+    '</div>',
+    '<section class="case-app-gallery" aria-labelledby="archdep-app-title">',
+      '<header><span class="case-num">' + t.appEyebrow + '</span><h2 id="archdep-app-title">' + t.appTitle + '</h2><p>' + t.appDeck + '</p></header>',
+      '<div class="case-app-grid">' + appCards + '</div>',
+    '</section>',
+    '</div>'
+  ].join('\n');
+}
+
 function casePage(slug, item, lang) {
   const t = item[lang];
+  const displayTitle = item.mobileImage ? t.title.replace('.', '.<wbr>') : t.title;
   const seo = caseSeo[slug][lang];
   const canonical = siteBase + '/' + lang + '/cases/' + slug;
   const imageUrl = siteBase + '/assets/og/' + caseSeo[slug].og;
   const locale = lang === 'ua' ? 'uk_UA' : 'en_US';
   const alternateLocale = lang === 'ua' ? 'en_US' : 'uk_UA';
   const isVideo = Boolean(item.video);
-  const media = isVideo
+  const media = item.mobileImage
+    ? '<picture><source media="(max-width:720px)" srcset="../../assets/' + item.mobileImage + '"><img src="../../assets/' + item.image + '" width="1920" height="1200" alt="' + esc(t.title) + '" loading="eager" fetchpriority="high" decoding="async"></picture>'
+    : isVideo
     ? '<video muted loop playsinline preload="none" poster="../../assets/' + item.image + '" data-src="../../media/' + item.video + '"></video>'
     : '<img src="../../assets/' + item.image + '" alt="' + esc(t.title) + '" loading="eager">';
   const shot = isVideo
     ? '<video muted loop playsinline preload="none" poster="../../assets/' + item.image + '" data-src="../../media/' + item.video + '"></video>'
     : '<img src="../../assets/' + item.image + '" alt="' + esc(t.title) + '" loading="lazy">';
+  const showcase = item.gallery
+    ? archdepShowcase(item, t, lang)
+    : '<div class="case-shot">' + shot + '<span class="case-shot__label">' + t.imageLabel + '</span></div>';
+  const projectLinks = item.website
+    ? '<div class="case-cta-group"><a class="case-cta case-cta--ghost" href="' + item.website + '" target="_blank" rel="noopener">' + t.websiteView + ' ↗</a><a class="case-cta" href="' + item.external + '" target="_blank" rel="noopener">' + t.view + ' ↗</a></div>'
+    : '<a class="case-cta" href="' + item.external + '" target="_blank" rel="noopener">' + t.view + ' ↗</a>';
   const lines = [
     '<!DOCTYPE html>',
     '<html lang="' + (lang === 'ua' ? 'uk' : 'en') + '">',
@@ -348,14 +425,14 @@ function casePage(slug, item, lang) {
     '<script type="application/ld+json">' + caseStructuredData(slug, item, lang, seo, canonical, imageUrl) + '</script>',
     '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
     '<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">',
-    '<link rel="stylesheet" href="../../case.css?v=cases-v1-20260909">',
+    '<link rel="stylesheet" href="../../case.css?v=cases-v2-20260924">',
     '</head><body>',
     '<header class="case-head"><div class="case-wrap case-head__in"><a class="case-brand" href="../../' + lang + '/"><i></i>Ixonity</a><a class="case-back" href="../../' + lang + '/#work">' + t.back + '</a><nav class="case-lang" aria-label="Language"><a class="' + (lang === 'ua' ? 'on' : '') + '" href="../../ua/cases/' + slug + '">UA</a><a class="' + (lang === 'en' ? 'on' : '') + '" href="../../en/cases/' + slug + '">EN</a></nav></div></header>',
     '<main>',
-    '<section class="case-hero"><div class="case-hero__media">' + media + '</div><div class="case-wrap"><div class="case-hero__body"><div class="case-kicker">' + t.kicker + '</div><h1>' + t.title + '</h1><p class="case-deck">' + t.deck + '</p></div><div class="case-meta"><div><small>Role</small><b>' + t.role + '</b></div><div><small>Status</small><b>' + t.status + '</b></div><div><small>Stack / period</small><b>' + item.tags + ' · ' + t.year + '</b></div></div></div></section>',
+    '<section class="case-hero' + (item.mobileImage ? ' case-hero--product' : '') + '"><div class="case-hero__media' + (item.mobileImage ? ' case-hero__media--product' : '') + '">' + media + '</div><div class="case-wrap"><div class="case-hero__body"><div class="case-kicker">' + t.kicker + '</div><h1>' + displayTitle + '</h1><p class="case-deck">' + t.deck + '</p></div><div class="case-meta"><div><small>Role</small><b>' + t.role + '</b></div><div><small>Status</small><b>' + t.status + '</b></div><div><small>Stack / period</small><b>' + item.tags + ' · ' + t.year + '</b></div></div></div></section>',
     '<section class="case-main"><div class="case-wrap"><div class="case-intro"><div><span class="case-num">01 / Context</span><h2>' + t.problemTitle + '</h2></div><div class="case-copy"><article><h3>01 — ' + t.problemTitle + '</h3><p>' + t.problem + '</p></article><article><h3>02 — ' + t.approachTitle + '</h3><p>' + t.approach + '</p></article><article><h3>03 — ' + t.outcomeTitle + '</h3><p>' + t.outcome + '</p></article></div></div>',
-    '<div class="case-shot">' + shot + '<span class="case-shot__label">' + t.imageLabel + '</span></div></div></section>',
-    '<section class="case-wrap case-next"><a href="' + item.next + '"><small>' + t.nextLabel + '</small><strong>' + t.next + ' →</strong></a><a class="case-cta" href="' + item.external + '" target="_blank" rel="noopener">' + t.view + ' ↗</a></section>',
+    showcase + '</div></section>',
+    '<section class="case-wrap case-next"><a href="' + item.next + '"><small>' + t.nextLabel + '</small><strong>' + t.next + ' →</strong></a>' + projectLinks + '</section>',
     '</main><footer class="case-wrap case-next"><span>© <span data-year></span> Ixonity</span><a href="../../' + lang + '/#contact">hello@ixonity.dev</a></footer>',
     '<script src="../../case.js?v=cases-v1-20260909"></script>',
     '</body></html>'

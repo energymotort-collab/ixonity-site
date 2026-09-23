@@ -1076,7 +1076,7 @@ const EN = {
   p6t:'Support', p6d:'Six months of free bug fixing. After that — a monthly plan or hourly work, whichever suits you.', p6x:'6-month warranty',
   w_title:'Already shipped',
   w_lead:'Products in production, not concepts. Two apps on the App Store and our own R&amp;D engine.',
-  c1d:'A full furniture store inside an app: filtered catalogue, cart, orders, Monobank acquiring, behaviour analytics, a manager dashboard. From mockup to App Store release — built from the first line.',
+  c1d:'A furniture-brand commerce ecosystem: a responsive website and native iOS app with 3D/AR, product configuration, cart and Monobank payments.',
   c2d:'A QR generator at commercial-tool level: custom eyes and frames, branding, dynamic codes, scan statistics, print-quality export.',
   c3d:'Our own planetary 3D engine on WebGPU: volumetric clouds with Rayleigh/Mie scattering, climate simulation over a million particles, seamless LOD. We build it to stay sharp on the hardest graphics.',
   c_open:'View case study', c_follow:'View the R&D case',
