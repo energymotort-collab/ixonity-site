@@ -38,12 +38,12 @@
 
 - [Головна, українською](https://ixonity.dev/ua/)
 - [Головна, англійською](https://ixonity.dev/en/)
-- [Кейс: мобільний магазин меблів](https://ixonity.dev/ua/cases/archdep.html)
-- [Кейс: QR-продукт](https://ixonity.dev/ua/cases/qr-ixonity.html)
-- [Кейс: інтерактивний продукт](https://ixonity.dev/ua/cases/stormdive.html)
-- [Політика конфіденційності](https://ixonity.dev/privacy.html)
-- [Умови](https://ixonity.dev/terms.html)
-- [Реквізити](https://ixonity.dev/impressum.html)
+- [Кейс: мобільний магазин меблів](https://ixonity.dev/ua/cases/archdep)
+- [Кейс: QR-продукт](https://ixonity.dev/ua/cases/qr-ixonity)
+- [Кейс: інтерактивний продукт](https://ixonity.dev/ua/cases/stormdive)
+- [Політика конфіденційності](https://ixonity.dev/privacy)
+- [Умови](https://ixonity.dev/terms)
+- [Реквізити](https://ixonity.dev/impressum)
 
 ## Контакти
 

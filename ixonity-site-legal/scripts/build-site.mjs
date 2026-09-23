@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const siteBase = String(process.env.SITE_BASE || 'https://ixonity.dev').replace(/\/$/, '');
 const rootHtml = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
 const appJs = fs.readFileSync(path.join(rootDir, 'app.js'), 'utf8');
 const enMatch = appJs.match(/const EN = (\{[\s\S]*?\n\});\n\nconst UA/);
@@ -26,16 +27,24 @@ function priceRange(attr, lang) {
   const [a, b] = attr.split(',').map(Number);
   const grp = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   if (lang === 'en') {
-    const r = n => Math.round(n * usdToEur / 50) * 50;
-    return '€' + grp(r(a)) + '–' + grp(r(b));
+    const r = n => Math.round(n * usdToEur / 10) * 10;
+    return '€' + grp(r(a)) + ' – €' + grp(r(b));
   }
   const r = n => Math.round(n * usdToUah / 500) * 500;
-  return grp(r(a)) + '–' + grp(r(b)) + ' ₴';
+  return grp(r(a)) + ' ₴ – ' + grp(r(b)) + ' ₴';
+}
+
+function singlePrice(attr, lang) {
+  const usd = Number(attr);
+  const grp = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  if (lang === 'en') return '€' + grp(Math.round(usd * usdToEur / 10) * 10);
+  return grp(Math.round(usd * usdToUah / 500) * 500) + ' ₴';
 }
 
 function plainText(html, lang) {
   return html
     .replace(/<span data-usd-range="([^"]+)"[^>]*><\/span>/g, (_, a) => priceRange(a, lang))
+    .replace(/<span data-usd="([^"]+)"[^>]*><\/span>/g, (_, a) => singlePrice(a, lang))
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
@@ -59,29 +68,70 @@ function faqSchema(html, lang) {
     '</script>';
 }
 
+function studioSchema(lang, title, description, canonical) {
+  const uk = lang === 'uk';
+  const services = uk
+    ? ['Розробка сайтів і лендингів', 'Інтернет-магазини та каталоги', 'Мобільні застосунки iOS та Android', 'Бекенд та інтеграції', 'UI/UX дизайн']
+    : ['Website and landing page development', 'E-commerce platforms and catalogues', 'iOS and Android app development', 'Backend development and integrations', 'UI/UX product design'];
+  const graph = {
+    '@context':'https://schema.org',
+    '@graph':[
+      {
+        '@type':['ProfessionalService','Organization'], '@id':siteBase + '/#studio',
+        name:'Ixonity', alternateName:'Ixonity Studio', url:siteBase + '/',
+        logo:siteBase + '/assets/icon-512.png', image:siteBase + '/assets/og/ixonity-studio.jpg',
+        description:uk
+          ? 'Студія цифрових продуктів: UX/UI, сайти, вебсервіси, мобільні застосунки та інтерактивні рішення.'
+          : 'Digital product studio for UX/UI, websites, web services, mobile apps and interactive experiences.',
+        slogan:uk ? 'Цифрові продукти, що працюють' : 'Digital products built to work',
+        email:'hello@ixonity.dev', telephone:'+380771817071', priceRange:'$$',
+        address:{'@type':'PostalAddress', addressLocality:uk ? 'Одеса' : 'Odesa', addressCountry:'UA'},
+        areaServed:['Ukraine','European Union','Worldwide'], knowsLanguage:['uk','en'],
+        founder:{'@type':'Person', name:uk ? 'Олексій Зайцев' : 'Oleksii Zaitsev'},
+        sameAs:['https://instagram.com/ixonity_studio'],
+        hasOfferCatalog:{'@type':'OfferCatalog', name:uk ? 'Послуги' : 'Services', itemListElement:services.map(name => ({'@type':'Offer', itemOffered:{'@type':'Service', name}}))}
+      },
+      {'@type':'WebSite', '@id':siteBase + '/#website', url:siteBase + '/', name:'Ixonity', inLanguage:['uk','en'], publisher:{'@id':siteBase + '/#studio'}},
+      {'@type':'WebPage', '@id':canonical + '#webpage', url:canonical, name:title, description, inLanguage:lang, isPartOf:{'@id':siteBase + '/#website'}, about:{'@id':siteBase + '/#studio'}}
+    ]
+  };
+  return '<script type="application/ld+json">' + JSON.stringify(graph) + '</script>';
+}
+
 function localePage(lang) {
   let html = lang === 'en' ? translateEnglish(rootHtml) : rootHtml;
+  const route = lang === 'en' ? '/en/' : '/ua/';
+  const canonical = siteBase + route;
   const title = lang === 'en'
-    ? 'Websites & Mobile Apps, Built End to End — Ixonity'
-    : 'Розробка сайтів і мобільних застосунків — Ixonity';
+    ? 'Web & Mobile App Development Studio — Ixonity'
+    : 'Розробка сайтів і застосунків під ключ — Ixonity';
   const description = lang === 'en'
-    ? 'Ixonity builds websites, online stores, iOS and Android apps and the backend behind them. One team from the first screen to launch. Transparent pricing, contract, fixed milestones.'
-    : 'Розробка сайтів, інтернет-магазинів і застосунків iOS та Android під ключ: дизайн, код, бекенд, аналітика. Прозорі ціни, договір, фіксовані етапи. Студія Ixonity, Одеса.';
+    ? 'Ixonity designs and builds websites, e-commerce platforms and mobile apps end to end—from UX/UI and backend to launch and ongoing support.'
+    : 'Створюємо сайти, інтернет-магазини та мобільні застосунки під ключ: UX/UI, розробка, бекенд і запуск. Ixonity — digital product studio в Одесі.';
+  const locale = lang === 'en' ? 'en_US' : 'uk_UA';
+  const alternateLocale = lang === 'en' ? 'uk_UA' : 'en_US';
   html = html.replace('<html lang="uk">', '<html lang="' + lang + '">');
   html = html.replace('<body>', '<body data-locale-route="' + lang + '">');
   html = html.replace(/<title>[\s\S]*?<\/title>/, '<title>' + title + '</title>');
   html = html.replace(/<meta name="description" content="[^"]*">/, '<meta name="description" content="' + description + '">');
+  html = html.replace(/<link rel="canonical" href="[^"]*">/, '<link rel="canonical" href="' + canonical + '">');
+  html = html.replace(/<link rel="alternate" hreflang="uk" href="[^"]*">/, '<link rel="alternate" hreflang="uk" href="' + siteBase + '/ua/">');
+  html = html.replace(/<link rel="alternate" hreflang="en" href="[^"]*">/, '<link rel="alternate" hreflang="en" href="' + siteBase + '/en/">');
+  html = html.replace(/<link rel="alternate" hreflang="x-default" href="[^"]*">/, '<link rel="alternate" hreflang="x-default" href="' + siteBase + '/en/">');
+  html = html.replace(/(<meta property="og:url" content=")[^"]*(")/, '$1' + canonical + '$2');
   html = html.replace(/<meta property="og:title" content="[^"]*">/, '<meta property="og:title" content="' + title + '">');
   html = html.replace(/<meta property="og:description" content="[^"]*">/, '<meta property="og:description" content="' + description + '">');
-  html = html.replace(/<meta property="og:locale" content="[^"]*">/, '<meta property="og:locale" content="' + (lang === 'en' ? 'en_US' : 'uk_UA') + '">');
-  html = html.replace('<link rel="canonical" href="./">', '<link rel="canonical" href="./">');
-  html = html.replace('<link rel="alternate" hreflang="uk" href="ua/">', '<link rel="alternate" hreflang="uk" href="../ua/">');
-  html = html.replace('<link rel="alternate" hreflang="en" href="en/">', '<link rel="alternate" hreflang="en" href="../en/">');
-  html = html.replace('<link rel="alternate" hreflang="x-default" href="./">', '<link rel="alternate" hreflang="x-default" href="../ua/">');
+  html = html.replace(/(<meta property="og:image" content=")[^"]*(")/, '$1' + siteBase + '/assets/og/ixonity-studio.jpg$2');
+  html = html.replace(/<meta property="og:locale" content="[^"]*">/, '<meta property="og:locale" content="' + locale + '">');
+  html = html.replace(/<meta property="og:locale:alternate" content="[^"]*">/, '<meta property="og:locale:alternate" content="' + alternateLocale + '">');
+  html = html.replace(/<meta name="twitter:title" content="[^"]*">/, '<meta name="twitter:title" content="' + title + '">');
+  html = html.replace(/<meta name="twitter:description" content="[^"]*">/, '<meta name="twitter:description" content="' + description + '">');
+  html = html.replace(/(<meta name="twitter:image" content=")[^"]*(")/, '$1' + siteBase + '/assets/og/ixonity-studio.jpg$2');
+  html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, () => studioSchema(lang, title, description, canonical));
   html = html.replace(/(["'])(assets|media)\//g, '$1../$2/');
   html = html.replace(/href="styles\.css/g, 'href="../styles.css');
   html = html.replace(/src="app\.js/g, 'src="../app.js');
-  html = html.replace(/href="(privacy|terms|impressum)\.html/g, 'href="../$1.html');
+  html = html.replace(/href="(privacy|terms|impressum)(?:\.html)?/g, 'href="../$1');
   html = html.replace(/href="(?:ua|en)\/cases\/([^"]+)"/g, 'href="cases/$1"');
   if (lang === 'en') {
     html = html.replace('Показані ціни для клієнтів з України: гривня, компактний scope і швидший запуск.', 'International pricing is shown for clients outside Ukraine: custom scope and EUR billing.');
@@ -89,10 +139,8 @@ function localePage(lang) {
     html = html.replace('<div class="price" data-market-panel="ua">', '<div class="price" data-market-panel="ua" hidden>');
     html = html.replace('<div class="price" data-market-panel="global" hidden>', '<div class="price" data-market-panel="global">');
     html = html.replace(/data-usd-range="600,1100" data-market-faq-range/g, 'data-usd-range="1745,3490" data-market-faq-range');
-    html = html.replace('<b data-market-support>від 15 000 ₴/міс</b>', '<b data-market-support>from €500/mo</b>');
+    html = html.replace('<b data-market-support>від 8 000 ₴/міс</b>', '<b data-market-support>from €500/mo</b>');
     html = html.replace('data-usd="337" data-market-support-price', 'data-usd="581.5" data-market-support-price');
-    html = html.replace('"addressLocality":"Одеса"', '"addressLocality":"Odesa"');
-    html = html.replace('"areaServed":"UA"', '"areaServed":"Worldwide"');
   }
   const faq = faqSchema(html, lang);
   if (faq) html = html.replace('</head>', '  ' + faq + '\n</head>');
@@ -187,13 +235,90 @@ const cases = {
   }
 };
 
+const caseSeo = {
+  archdep: {
+    og:'archdep.jpg',
+    ua:{
+      title:'Archdep: мобільний магазин меблів для iOS — Ixonity',
+      description:'Кейс Ixonity: UX/UI та розробка SwiftUI-застосунку Archdep.Furniture з каталогом, кошиком, оплатою Monobank, Firebase і кабінетом менеджера.'
+    },
+    en:{
+      title:'Archdep: iOS Furniture Store Case Study — Ixonity',
+      description:'How Ixonity designed and built the Archdep.Furniture iOS app with product discovery, cart, Monobank payments, Firebase and a manager dashboard.'
+    }
+  },
+  'qr-ixonity': {
+    og:'qr-ixonity.jpg',
+    ua:{
+      title:'QR-Ixonity: генератор QR-кодів для iOS — кейс Ixonity',
+      description:'Кейс iOS-застосунку QR-Ixonity: брендовані QR-коди, динамічні посилання, статистика сканувань і векторний експорт для друку.'
+    },
+    en:{
+      title:'QR-Ixonity: iOS QR Code Generator — Ixonity Case Study',
+      description:'How Ixonity built a commercial iOS QR-code generator with custom branding, dynamic destinations, scan analytics and vector export for print.'
+    }
+  },
+  stormdive: {
+    og:'stormdive.jpg',
+    ua:{
+      title:'StormDive: WebGPU-планета в реальному часі — Ixonity',
+      description:'R&D-кейс Ixonity: браузерний 3D-рушій на WebGPU з raymarching, атмосферним розсіюванням, об’ємними хмарами та безшовним LOD.'
+    },
+    en:{
+      title:'StormDive: Real-Time WebGPU Planet Engine — Ixonity',
+      description:'Ixonity’s WebGPU R&D case study: a real-time planetary engine with raymarching, atmospheric scattering, volumetric clouds and seamless LOD.'
+    }
+  }
+};
+
 function esc(value) {
   return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 }
 
+function caseStructuredData(slug, item, lang, seo, canonical, imageUrl) {
+  const t = item[lang];
+  const inLanguage = lang === 'ua' ? 'uk' : 'en';
+  const applicationCategory = slug === 'archdep'
+    ? 'ShoppingApplication'
+    : (slug === 'qr-ixonity' ? 'UtilitiesApplication' : 'GraphicsApplication');
+  return JSON.stringify({
+    '@context':'https://schema.org',
+    '@graph':[
+      {
+        '@type':'WebPage', '@id':canonical + '#webpage', url:canonical,
+        name:seo.title, description:seo.description, inLanguage,
+        isPartOf:{'@id':siteBase + '/#website'}, about:{'@id':canonical + '#product'}
+      },
+      {
+        '@type':'Article', '@id':canonical + '#article', headline:seo.title,
+        description:seo.description, image:[imageUrl], inLanguage,
+        mainEntityOfPage:{'@id':canonical + '#webpage'},
+        author:{'@id':siteBase + '/#studio'}, publisher:{'@id':siteBase + '/#studio'},
+        about:{'@id':canonical + '#product'}
+      },
+      {
+        '@type':'SoftwareApplication', '@id':canonical + '#product', name:t.title,
+        description:t.deck, applicationCategory,
+        operatingSystem:slug === 'stormdive' ? 'Web browser' : 'iOS',
+        url:item.external
+      },
+      {
+        '@type':'BreadcrumbList', itemListElement:[
+          {'@type':'ListItem', position:1, name:'Ixonity', item:siteBase + '/' + lang + '/'},
+          {'@type':'ListItem', position:2, name:t.title, item:canonical}
+        ]
+      }
+    ]
+  });
+}
+
 function casePage(slug, item, lang) {
   const t = item[lang];
-  const other = lang === 'ua' ? 'en' : 'ua';
+  const seo = caseSeo[slug][lang];
+  const canonical = siteBase + '/' + lang + '/cases/' + slug;
+  const imageUrl = siteBase + '/assets/og/' + caseSeo[slug].og;
+  const locale = lang === 'ua' ? 'uk_UA' : 'en_US';
+  const alternateLocale = lang === 'ua' ? 'en_US' : 'uk_UA';
   const isVideo = Boolean(item.video);
   const media = isVideo
     ? '<video muted loop playsinline preload="none" poster="../../assets/' + item.image + '" data-src="../../media/' + item.video + '"></video>'
@@ -206,21 +331,32 @@ function casePage(slug, item, lang) {
     '<html lang="' + (lang === 'ua' ? 'uk' : 'en') + '">',
     '<head>',
     '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">',
-    '<title>' + esc(t.title) + ' — Ixonity case study</title>',
-    '<meta name="description" content="' + esc(t.deck) + '">',
-    '<link rel="canonical" href="' + slug + '.html"><link rel="alternate" hreflang="uk" href="../../ua/cases/' + slug + '.html"><link rel="alternate" hreflang="en" href="../../en/cases/' + slug + '.html">',
-    '<meta name="theme-color" content="#07070A"><meta property="og:type" content="article"><meta property="og:title" content="' + esc(t.title) + ' — Ixonity"><meta property="og:description" content="' + esc(t.deck) + '"><meta property="og:image" content="../../assets/' + item.image + '">',
+    '<title>' + esc(seo.title) + '</title>',
+    '<meta name="description" content="' + esc(seo.description) + '">',
+    '<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">',
+    '<link rel="canonical" href="' + canonical + '">',
+    '<link rel="alternate" hreflang="uk" href="' + siteBase + '/ua/cases/' + slug + '">',
+    '<link rel="alternate" hreflang="en" href="' + siteBase + '/en/cases/' + slug + '">',
+    '<link rel="alternate" hreflang="x-default" href="' + siteBase + '/en/cases/' + slug + '">',
+    '<meta name="theme-color" content="#07070A">',
+    '<meta property="og:type" content="article"><meta property="og:url" content="' + canonical + '">',
+    '<meta property="og:title" content="' + esc(seo.title) + '"><meta property="og:description" content="' + esc(seo.description) + '">',
+    '<meta property="og:image" content="' + imageUrl + '"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:type" content="image/jpeg"><meta property="og:image:alt" content="' + esc(t.title + ' — Ixonity case study') + '">',
+    '<meta property="og:locale" content="' + locale + '"><meta property="og:locale:alternate" content="' + alternateLocale + '"><meta property="og:site_name" content="Ixonity">',
+    '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="' + esc(seo.title) + '"><meta name="twitter:description" content="' + esc(seo.description) + '"><meta name="twitter:image" content="' + imageUrl + '"><meta name="twitter:image:alt" content="' + esc(t.title + ' — Ixonity case study') + '">',
+    '<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">',
+    '<script type="application/ld+json">' + caseStructuredData(slug, item, lang, seo, canonical, imageUrl) + '</script>',
     '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
     '<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">',
     '<link rel="stylesheet" href="../../case.css?v=cases-v1-20260909">',
     '</head><body>',
-    '<header class="case-head"><div class="case-wrap case-head__in"><a class="case-brand" href="../"><i></i>Ixonity</a><a class="case-back" href="../#work">' + t.back + '</a><nav class="case-lang" aria-label="Language"><a class="' + (lang === 'ua' ? 'on' : '') + '" href="../../ua/cases/' + slug + '.html">UA</a><a class="' + (lang === 'en' ? 'on' : '') + '" href="../../en/cases/' + slug + '.html">EN</a></nav></div></header>',
+    '<header class="case-head"><div class="case-wrap case-head__in"><a class="case-brand" href="../../' + lang + '/"><i></i>Ixonity</a><a class="case-back" href="../../' + lang + '/#work">' + t.back + '</a><nav class="case-lang" aria-label="Language"><a class="' + (lang === 'ua' ? 'on' : '') + '" href="../../ua/cases/' + slug + '">UA</a><a class="' + (lang === 'en' ? 'on' : '') + '" href="../../en/cases/' + slug + '">EN</a></nav></div></header>',
     '<main>',
     '<section class="case-hero"><div class="case-hero__media">' + media + '</div><div class="case-wrap"><div class="case-hero__body"><div class="case-kicker">' + t.kicker + '</div><h1>' + t.title + '</h1><p class="case-deck">' + t.deck + '</p></div><div class="case-meta"><div><small>Role</small><b>' + t.role + '</b></div><div><small>Status</small><b>' + t.status + '</b></div><div><small>Stack / period</small><b>' + item.tags + ' · ' + t.year + '</b></div></div></div></section>',
     '<section class="case-main"><div class="case-wrap"><div class="case-intro"><div><span class="case-num">01 / Context</span><h2>' + t.problemTitle + '</h2></div><div class="case-copy"><article><h3>01 — ' + t.problemTitle + '</h3><p>' + t.problem + '</p></article><article><h3>02 — ' + t.approachTitle + '</h3><p>' + t.approach + '</p></article><article><h3>03 — ' + t.outcomeTitle + '</h3><p>' + t.outcome + '</p></article></div></div>',
     '<div class="case-shot">' + shot + '<span class="case-shot__label">' + t.imageLabel + '</span></div></div></section>',
-    '<section class="case-wrap case-next"><a href="' + item.next + '.html"><small>' + t.nextLabel + '</small><strong>' + t.next + ' →</strong></a><a class="case-cta" href="' + item.external + '" target="_blank" rel="noopener">' + t.view + ' ↗</a></section>',
-    '</main><footer class="case-wrap case-next"><span>© <span data-year></span> Ixonity</span><a href="../#contact">hello@ixonity.dev</a></footer>',
+    '<section class="case-wrap case-next"><a href="' + item.next + '"><small>' + t.nextLabel + '</small><strong>' + t.next + ' →</strong></a><a class="case-cta" href="' + item.external + '" target="_blank" rel="noopener">' + t.view + ' ↗</a></section>',
+    '</main><footer class="case-wrap case-next"><span>© <span data-year></span> Ixonity</span><a href="../../' + lang + '/#contact">hello@ixonity.dev</a></footer>',
     '<script src="../../case.js?v=cases-v1-20260909"></script>',
     '</body></html>'
   ];
@@ -237,33 +373,6 @@ for (const lang of ['ua', 'en']) {
   }
 }
 
-const siteBase = String(process.env.SITE_BASE || '').replace(/\/$/, '');
-
-/* Соцмережі не вміють у відносні адреси картинки — коли знаємо домен,
-   робимо og:image абсолютним, а заодно проставляємо og:url кожній мові. */
-if (siteBase) {
-  const absolutise = [
-    ['index.html', '/'],
-    ['ua/index.html', '/ua/'],
-    ['en/index.html', '/en/']
-  ];
-  for (const [file, route] of absolutise) {
-    const full = path.join(rootDir, file);
-    if (!fs.existsSync(full)) continue;
-    let page = fs.readFileSync(full, 'utf8');
-    page = page.replace(/(<meta property="og:image" content=")[^"]*(")/,
-                        '$1' + siteBase + '/assets/hero-main.jpg$2');
-    if (page.includes('property="og:url"')) {
-      page = page.replace(/(<meta property="og:url" content=")[^"]*(")/,
-                          '$1' + siteBase + route + '$2');
-    } else {
-      page = page.replace(/(<meta property="og:type"[^>]*>)/,
-                          '$1<meta property="og:url" content="' + siteBase + route + '">');
-    }
-    fs.writeFileSync(full, page);
-  }
-}
-
 if (siteBase) {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -271,16 +380,15 @@ if (siteBase) {
      що це одна сторінка двома мовами, а не два різні документи. */
   const pairs = [
     ['/ua/', '/en/'],
-    ['/ua/cases/archdep.html', '/en/cases/archdep.html'],
-    ['/ua/cases/qr-ixonity.html', '/en/cases/qr-ixonity.html'],
-    ['/ua/cases/stormdive.html', '/en/cases/stormdive.html']
+    ['/ua/cases/archdep', '/en/cases/archdep'],
+    ['/ua/cases/qr-ixonity', '/en/cases/qr-ixonity'],
+    ['/ua/cases/stormdive', '/en/cases/stormdive']
   ];
-  const single = ['/privacy.html', '/terms.html', '/impressum.html'];
 
   const alts = (uk, en) =>
     '    <xhtml:link rel="alternate" hreflang="uk" href="' + siteBase + uk + '"/>\n' +
     '    <xhtml:link rel="alternate" hreflang="en" href="' + siteBase + en + '"/>\n' +
-    '    <xhtml:link rel="alternate" hreflang="x-default" href="' + siteBase + uk + '"/>\n';
+    '    <xhtml:link rel="alternate" hreflang="x-default" href="' + siteBase + en + '"/>\n';
 
   let body = '';
   for (const [uk, en] of pairs) {
@@ -289,11 +397,6 @@ if (siteBase) {
               '    <lastmod>' + today + '</lastmod>\n    <priority>' + prio + '</priority>\n  </url>\n';
     }
   }
-  for (const loc of single) {
-    body += '  <url>\n    <loc>' + siteBase + loc + '</loc>\n    <lastmod>' + today +
-            '</lastmod>\n    <priority>0.3</priority>\n  </url>\n';
-  }
-
   fs.writeFileSync(path.join(rootDir, 'sitemap.xml'),
     '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' +
@@ -354,12 +457,12 @@ if (siteBase) {
 
 - [Головна, українською](${siteBase}/ua/)
 - [Головна, англійською](${siteBase}/en/)
-- [Кейс: мобільний магазин меблів](${siteBase}/ua/cases/archdep.html)
-- [Кейс: QR-продукт](${siteBase}/ua/cases/qr-ixonity.html)
-- [Кейс: інтерактивний продукт](${siteBase}/ua/cases/stormdive.html)
-- [Політика конфіденційності](${siteBase}/privacy.html)
-- [Умови](${siteBase}/terms.html)
-- [Реквізити](${siteBase}/impressum.html)
+- [Кейс: мобільний магазин меблів](${siteBase}/ua/cases/archdep)
+- [Кейс: QR-продукт](${siteBase}/ua/cases/qr-ixonity)
+- [Кейс: інтерактивний продукт](${siteBase}/ua/cases/stormdive)
+- [Політика конфіденційності](${siteBase}/privacy)
+- [Умови](${siteBase}/terms)
+- [Реквізити](${siteBase}/impressum)
 
 ## Контакти
 

@@ -1150,7 +1150,7 @@ const EN = {
   fb:'Estimated budget', fb1:'under €2,000', fb2:'€2,000 – €5,000', fb3:'€5,000 – €10,000', fb4:'€10,000 – €25,000', fb5:'€25,000+', fb6:'need advice',
   fdeadline:'Preferred start', fd1:'Flexible', fd2:'Within a month', fd3:'1–3 months', fd4:'3+ months',
   fm:'About the product, goal and key features', fsend:'Send enquiry',
-  fhint:'Your brief is securely delivered to our inbox through FormSubmit. By sending it, you agree to the <a href="privacy.html">privacy policy</a>. Add files as Figma or Drive links.',
+  fhint:'Your brief is securely delivered to our inbox through FormSubmit. By sending it, you agree to the <a href="privacy">privacy policy</a>. Add files as Figma or Drive links.',
   ch_call:'Call us', ch_legal:'Legal details', ch_addr:'Odesa, Ukraine',
   ch_tax:'Registered sole proprietor · contract & act',
   ftn1:'Services', ftl1:'Websites & landings', ftl2:'Online stores', ftl3:'Mobile apps',
@@ -1169,12 +1169,12 @@ $$('[data-i18n]').forEach(el =>
 
 const META = {
   uk: {
-    title:'Ixonity — digital product studio з України',
-    description:'Ixonity проєктує та створює цифрові продукти: premium websites, e-commerce, web apps, iOS, Android, UI/UX і WebGL. Базуємося в Україні, працюємо по всьому світу.'
+    title:'Розробка сайтів і застосунків під ключ — Ixonity',
+    description:'Створюємо сайти, інтернет-магазини та мобільні застосунки під ключ: UX/UI, розробка, бекенд і запуск. Ixonity — digital product studio в Одесі.'
   },
   en: {
-    title:'Ixonity — Digital Product Studio from Ukraine',
-    description:'Ixonity designs and builds premium websites, e-commerce, web apps, mobile products, UI/UX and interactive WebGL experiences for clients worldwide.'
+    title:'Web & Mobile App Development Studio — Ixonity',
+    description:'Ixonity designs and builds websites, e-commerce platforms and mobile apps end to end—from UX/UI and backend to launch and ongoing support.'
   }
 };
 
@@ -1187,6 +1187,10 @@ function setLang(l){
   $('meta[property="og:title"]').content = META[l].title;
   $('meta[property="og:description"]').content = META[l].description;
   $('meta[property="og:locale"]').content = l === 'uk' ? 'uk_UA' : 'en_US';
+  const twitterTitle = $('meta[name="twitter:title"]');
+  const twitterDescription = $('meta[name="twitter:description"]');
+  if (twitterTitle) twitterTitle.content = META[l].title;
+  if (twitterDescription) twitterDescription.content = META[l].description;
   $$('[data-i18n]').forEach(el => {
     const k = el.dataset.i18n;
     const v = l === 'uk' ? UA[k] : (EN[k] ?? UA[k]);
@@ -1195,10 +1199,10 @@ function setLang(l){
     else el.innerHTML = v;
   });
   $$('.work[data-case]').forEach(link => {
-    link.href = ROUTE_LANG ? `cases/${link.dataset.case}.html` : `${l === 'uk' ? 'ua' : 'en'}/cases/${link.dataset.case}.html`;
+    link.href = ROUTE_LANG ? `cases/${link.dataset.case}` : `${l === 'uk' ? 'ua' : 'en'}/cases/${link.dataset.case}`;
   });
   const privacyLink = $('[data-i18n="fhint"] a');
-  if (privacyLink) privacyLink.href = ROUTE_LANG ? '../privacy.html' : 'privacy.html';
+  if (privacyLink) privacyLink.href = ROUTE_LANG ? '../privacy' : 'privacy';
   setMarket(MARKET);
   $$('.lang button[data-lang]').forEach(b => b.classList.toggle('on', b.dataset.lang === l));
   renderPrices();

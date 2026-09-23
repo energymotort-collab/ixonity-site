@@ -15,7 +15,8 @@ Production-репозиторій: `https://github.com/energymotort-collab/ixoni
 | `functions/` | Cloudflare Pages Functions: країна → український або міжнародний прайс |
 | `privacy.html` / `terms.html` / `impressum.html` | юридичні сторінки |
 | `robots.txt` / `sitemap.xml` | базова індексація пошуковими системами |
-| `assets/`, `media/` | зображення й відео |
+| `assets/`, `media/` | зображення й відео; `assets/og/` — окремі social-preview картки 1200×630 |
+| `404.html` | справжня сторінка 404 для Cloudflare Pages, що вимикає SPA fallback |
 
 ## Що редагувати найчастіше
 
@@ -62,8 +63,9 @@ node scripts/build-site.mjs
 | Build output directory | `.` |
 | Environment variable | `SITE_BASE = https://ixonity.dev` |
 
-`SITE_BASE` обовʼязковий: без нього не генерується `sitemap.xml`, а `og:image`
-і `og:url` лишаються відносними, і соцмережі не показують прев'ю.
+Для production `SITE_BASE` має дорівнювати `https://ixonity.dev`. Генератор також має
+цей домен як безпечне значення за замовчуванням, щоб canonical, sitemap та social preview
+ніколи не стали відносними через пропущену змінну середовища.
 
 Що дає Cloudflare, чого не дає GitHub Pages:
 
@@ -75,6 +77,14 @@ node scripts/build-site.mjs
 Після першого деплою: **Custom domains → Set up a domain** для `ixonity.dev`
 і `www.ixonity.dev`. Записи створяться автоматично, бо домен у тому ж акаунті.
 `.dev` входить у список HSTS preload, тож HTTPS вмикається примусово — це норма.
+
+`functions/_middleware.js` робить постійний редирект `www.ixonity.dev` → `ixonity.dev`
+зі збереженням шляху та query. У Cloudflare Dashboard бажано продублювати це правилом
+**Redirect Rules → Single Redirect** на рівні зони: host `www.ixonity.dev`, 301 на apex,
+preserve path і query.
+
+Публічні URL завжди без `.html`: `/ua/cases/archdep`, `/privacy` тощо. Фізичні файли
+залишаються `.html`, а Cloudflare Pages обслуговує clean URL і перенаправляє старі адреси.
 
 Перевірка, що edge-логіка жива: `https://ixonity.dev/api/market` має віддати
 `{"market":"ua"}` або `{"market":"global"}`.

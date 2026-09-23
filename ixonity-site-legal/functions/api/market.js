@@ -3,6 +3,7 @@ export function onRequestGet({ request }) {
   return Response.json({ market }, {
     headers: {
       'Cache-Control':'private, no-store, max-age=0',
+      'Vary':'CF-IPCountry',
       'X-Robots-Tag':'noindex'
     }
   });
